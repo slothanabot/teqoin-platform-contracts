@@ -21,7 +21,8 @@ import {
   TrendingDown,
   Coins,
   Lock,
-  ChevronRight
+  ChevronRight,
+  Settings
 } from "lucide-react";
 
 // Deployed Smart Contract Addresses on TeQoin Testnet
@@ -137,7 +138,7 @@ const ERC20_ABI = [
 ];
 
 export default function Home() {
-  const { login, logout, authenticated, ready, user } = usePrivy();
+  const { login, logout, authenticated, ready, user, exportWallet } = usePrivy();
   const { wallets } = useWallets();
   const activeWallet = wallets[0];
 
@@ -147,6 +148,7 @@ export default function Home() {
   const [isLoadingTokens, setIsLoadingTokens] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"trending" | "new" | "top" | "highvol">("trending");
 
   // Form State - Launch
@@ -1153,11 +1155,7 @@ export default function Home() {
             <div className="w-24 h-9 bg-cardBorder animate-pulse rounded-full" />
           ) : authenticated ? (
             <button 
-              onClick={() => {
-                if (confirm("Are you sure you want to disconnect?")) {
-                  logout();
-                }
-              }}
+              onClick={() => setShowProfile(true)}
               className="w-10 h-10 rounded-full border border-primary/50 overflow-hidden focus:outline-none hover:border-primary transition-all active:scale-95 flex items-center justify-center shadow-md bg-neutral-900"
             >
               <img 
@@ -1178,7 +1176,82 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* 6. FLAUNCH-STYLE SEARCH BOTTOM DRAWER */}
+
+      {/* 6. FLAUNCH-STYLE PROFILE BOTTOM DRAWER WITH SECURE PRIVATE KEY EXPORT */}
+      {showProfile && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end justify-center">
+          <div className="w-full max-w-md bg-[#0F0F16] border-t border-cardBorder rounded-t-[32px] p-6 space-y-5 shadow-2xl relative animate-slide-up pb-[env(safe-area-inset-bottom,24px)]">
+            {/* Drag Indicator handle */}
+            <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-1"></div>
+            
+            <div className="flex justify-between items-center pb-1">
+              <h3 className="text-sm font-black text-white">My Profile</h3>
+              <button 
+                onClick={() => setShowProfile(false)}
+                className="p-1 rounded-full bg-cardBorder hover:bg-neutral-800 text-gray-400"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Profile Identity Card */}
+            <div className="bg-cardBg border border-cardBorder rounded-2xl p-4 flex items-center gap-4 shadow-sm">
+              <img 
+                src={user?.google?.picture || user?.twitter?.profilePictureUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"} 
+                alt="Profile Avatar" 
+                className="w-14 h-14 rounded-full object-cover border border-cardBorder shadow-sm"
+              />
+              <div className="space-y-1">
+                <div className="font-extrabold text-sm text-white">
+                  {user?.google?.email || user?.twitter?.username || "Authenticated User"}
+                </div>
+                <div className="text-[10px] text-gray-400 font-mono tracking-tight break-all">
+                  {activeWallet?.address ? `${activeWallet.address.slice(0, 8)}...${activeWallet.address.slice(-6)}` : "No Embedded Wallet"}
+                </div>
+              </div>
+            </div>
+
+            {/* Settings & Export Private Key */}
+            <div className="space-y-2.5">
+              <div className="text-[10px] text-gray-400 uppercase font-black tracking-widest pl-1">Settings</div>
+              
+              <button 
+                onClick={() => {
+                  exportWallet();
+                  setShowProfile(false);
+                }}
+                className="w-full bg-gradient-to-r from-primary/10 to-purple-600/10 border border-cardBorder hover:border-primary/40 rounded-2xl p-4 flex justify-between items-center cursor-pointer transition-all active:scale-[0.99] text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                    <Settings size={16} />
+                  </div>
+                  <div>
+                    <div className="text-xs font-black text-white">Export Private Key</div>
+                    <div className="text-[10px] text-gray-400 mt-0.5">Securely backup your private key or seed phrase</div>
+                  </div>
+                </div>
+                <ChevronRight size={14} className="text-gray-500" />
+              </button>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="pt-2">
+              <button 
+                onClick={() => {
+                  logout();
+                  setShowProfile(false);
+                }}
+                className="w-full bg-red-500 hover:bg-opacity-95 text-white font-black py-3.5 rounded-2xl text-xs transition-all shadow-lg shadow-red-500/10"
+              >
+                Disconnect Wallet
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 7. FLAUNCH-STYLE SEARCH BOTTOM DRAWER */}
       {showSearch && (
          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end justify-center">
           <div className="w-full max-w-md bg-[#0F0F16] border-t border-cardBorder rounded-t-[32px] p-5 space-y-4 shadow-2xl relative animate-slide-up pb-[env(safe-area-inset-bottom,24px)]">
