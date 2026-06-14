@@ -149,6 +149,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [profileTab, setProfileTab] = useState<"balances" | "earnings" | "activity">("balances");
   const [activeFilter, setActiveFilter] = useState<"trending" | "new" | "top" | "highvol">("trending");
 
   // Form State - Launch
@@ -1178,76 +1179,221 @@ export default function Home() {
        </nav>
       )}
 
-
-      {/* 6. FLAUNCH-STYLE PROFILE BOTTOM DRAWER WITH SECURE PRIVATE KEY EXPORT */}
+      {/* 6. FLAUNCH-STYLE PROFILE BOTTOM DRAWER WITH BALANCES, EARNINGS, ACTIVITY & SETTINGS EXPORT */}
       {showProfile && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end justify-center">
-          <div className="w-full max-w-md bg-[#0F0F16] border-t border-cardBorder rounded-t-[32px] p-6 space-y-5 shadow-2xl relative animate-slide-up pb-[env(safe-area-inset-bottom,24px)]">
+          <div className="w-full max-w-md bg-[#0F0F16] border-t border-cardBorder rounded-t-[32px] p-6 space-y-4 shadow-2xl relative animate-slide-up pb-[env(safe-area-inset-bottom,24px)] flex flex-col max-h-[90vh]">
             {/* Drag Indicator handle */}
-            <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-1"></div>
+            <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-1 flex-shrink-0"></div>
             
-            <div className="flex justify-between items-center pb-1">
-              <h3 className="text-sm font-black text-white">My Profile</h3>
-              <button 
-                onClick={() => setShowProfile(false)}
-                className="p-1 rounded-full bg-cardBorder hover:bg-neutral-800 text-gray-400"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            {/* Profile Identity Card */}
-             <div className="bg-cardBg border border-cardBorder rounded-2xl p-4 flex items-center gap-4 shadow-sm">
-               <img 
-                 src={(user as any)?.google?.picture || (user as any)?.twitter?.profilePictureUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"} 
-                 alt="Profile Avatar" 
-                 className="w-14 h-14 rounded-full object-cover border border-cardBorder shadow-sm"
-               />
-               <div className="space-y-1">
-                 <div className="font-extrabold text-sm text-white">
-                   {(user as any)?.google?.email || (user as any)?.twitter?.username || "Authenticated User"}
-                 </div>
-                 <div className="text-[10px] text-gray-400 font-mono tracking-tight break-all">
-                   {activeWallet?.address ? `${activeWallet.address.slice(0, 8)}...${activeWallet.address.slice(-6)}` : "No Embedded Wallet"}
-                 </div>
-               </div>
-             </div>
-
-            {/* Settings & Export Private Key */}
-            <div className="space-y-2.5">
-              <div className="text-[10px] text-gray-400 uppercase font-black tracking-widest pl-1">Settings</div>
-              
-              <button 
-                onClick={() => {
-                  exportWallet();
-                  setShowProfile(false);
-                }}
-                className="w-full bg-gradient-to-r from-primary/10 to-purple-600/10 border border-cardBorder hover:border-primary/40 rounded-2xl p-4 flex justify-between items-center cursor-pointer transition-all active:scale-[0.99] text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                    <Settings size={16} />
+            {/* 1. Profile Header with Actions */}
+            <div className="flex justify-between items-start pb-2 flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <img 
+                  src={(user as any)?.google?.picture || (user as any)?.twitter?.profilePictureUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"} 
+                  alt="Profile Avatar" 
+                  className="w-16 h-16 rounded-full object-cover border-2 border-cardBorder shadow-md"
+                />
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-extrabold text-base text-white">
+                      {(user as any)?.google?.name || (user as any)?.twitter?.username || "theovertheraa"}
+                    </span>
+                    <span className="w-4 h-4 bg-primary text-white rounded-full flex items-center justify-center text-[8px] font-black shadow-sm">✓</span>
                   </div>
-                  <div>
-                    <div className="text-xs font-black text-white">Export Private Key</div>
-                    <div className="text-[10px] text-gray-400 mt-0.5">Securely backup your private key or seed phrase</div>
+                  <div className="text-xs text-gray-500 font-mono tracking-tight flex items-center gap-1">
+                    {activeWallet?.address ? `${activeWallet.address.slice(0, 6)}...${activeWallet.address.slice(-4)}` : "0x00b0...b75a"}
+                    <i data-lucide="copy" className="w-3 h-3 cursor-pointer hover:text-white"></i>
                   </div>
                 </div>
-                <ChevronRight size={14} className="text-gray-500" />
+              </div>
+
+              {/* Action Buttons: Export Key, Disconnect, Close */}
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => exportWallet()} 
+                  title="Export Private Key"
+                  className="w-9 h-9 rounded-full bg-cardBg border border-cardBorder flex items-center justify-center text-gray-400 hover:text-white transition-all shadow-sm"
+                >
+                  <Settings size={15} />
+                </button>
+                <button 
+                  onClick={() => {
+                    if (confirm("Disconnect wallet?")) {
+                      logout();
+                      setShowProfile(false);
+                    }
+                  }} 
+                  title="Disconnect"
+                  className="w-9 h-9 rounded-full bg-cardBg border border-cardBorder flex items-center justify-center text-red-400 hover:text-red-500 transition-all shadow-sm"
+                >
+                  <X size={15} />
+                </button>
+                <button 
+                  onClick={() => setShowProfile(false)} 
+                  title="Close"
+                  className="w-9 h-9 rounded-full bg-cardBg border border-cardBorder flex items-center justify-center text-gray-400 hover:text-white transition-all shadow-sm"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+            </div>
+
+            {/* 2. Profile Navigation Tabs */}
+            <div className="flex border-b border-cardBorder pb-0.5 flex-shrink-0 text-xs font-black text-gray-400">
+              <button 
+                onClick={() => setProfileTab("balances")}
+                className={`flex-1 pb-2.5 relative transition-all ${profileTab === "balances" ? "text-white" : "hover:text-white"}`}
+              >
+                Balances
+                {profileTab === "balances" && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-primary rounded-full"></span>}
+              </button>
+              <button 
+                onClick={() => setProfileTab("earnings")}
+                className={`flex-1 pb-2.5 relative transition-all ${profileTab === "earnings" ? "text-white" : "hover:text-white"}`}
+              >
+                Earnings
+                {profileTab === "earnings" && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-primary rounded-full"></span>}
+              </button>
+              <button 
+                onClick={() => setProfileTab("activity")}
+                className={`flex-1 pb-2.5 relative transition-all ${profileTab === "activity" ? "text-white" : "hover:text-white"}`}
+              >
+                Activity
+                {profileTab === "activity" && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-primary rounded-full"></span>}
               </button>
             </div>
 
-            {/* Action Buttons */}
-            <div className="pt-2">
-              <button 
-                onClick={() => {
-                  logout();
-                  setShowProfile(false);
-                }}
-                className="w-full bg-red-500 hover:bg-opacity-95 text-white font-black py-3.5 rounded-2xl text-xs transition-all shadow-lg shadow-red-500/10"
-              >
-                Disconnect Wallet
-              </button>
+            {/* 3. Tab Contents (Fully Scrollable Container) */}
+            <div className="flex-1 overflow-y-auto scrollbar-none space-y-4 pt-1">
+              
+              {/* TAB A: BALANCES */}
+              {profileTab === "balances" && (
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Total holdings</div>
+                    <div className="text-3xl font-black text-white">
+                      ${(parseFloat(userEthBalance) * 3500).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-500 font-bold bg-[#12121A]/40 border border-cardBorder/40 rounded-2xl p-4 text-center">
+                    0 active positions
+                  </div>
+                </div>
+              )}
+
+              {/* TAB B: EARNINGS */}
+              {profileTab === "earnings" && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-end">
+                    <div className="space-y-1">
+                      <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Earnings over time</div>
+                      <div className="text-3xl font-black text-white">$0.00</div>
+                    </div>
+                    <span className="text-[10px] bg-cardBorder text-gray-400 font-black px-2 py-1 rounded">All</span>
+                  </div>
+
+                  {/* Flaunch-style earnings timeline chart mockup */}
+                  <div className="h-32 w-full bg-[#12121A]/30 border border-cardBorder rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden">
+                    <svg className="w-full h-16 absolute bottom-4 left-0" viewBox="0 0 100 30">
+                      <path d="M0,28 L20,28 L40,28 L60,28 L80,28 L100,28" fill="none" stroke="#2E284C" strokeWidth="1" />
+                      <circle cx="20" cy="28" r="2" fill="#FF2D78" />
+                      <circle cx="40" cy="28" r="2" fill="#FF2D78" />
+                      <circle cx="60" cy="28" r="2" fill="#FF2D78" />
+                      <circle cx="80" cy="28" r="2" fill="#FF2D78" />
+                    </svg>
+                    <div className="flex justify-between text-[9px] text-gray-500 font-bold w-full mt-auto">
+                      <span>Jun 8</span>
+                      <span>Jun 10</span>
+                      <span>Jun 12</span>
+                      <span>Jun 14</span>
+                    </div>
+                  </div>
+
+                  {/* Launched coins listing */}
+                  <div className="space-y-3">
+                    <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider pl-1">2 coins with earnings</div>
+                    
+                    <div className="bg-cardBg border border-cardBorder p-4 rounded-2xl flex items-center justify-between shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-neutral-800 flex items-center justify-center font-black text-sm text-[#FF2D78]">L</div>
+                        <div>
+                          <div className="text-xs font-black text-white">LECTERN · <span className="text-primary font-bold">$8.5K</span></div>
+                          <div className="text-[10px] text-gray-500 font-bold">1 earner</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs font-black text-white">$0</div>
+                        <div className="text-[10px] text-gray-500 font-bold">$0 claimable</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-cardBg border border-cardBorder p-4 rounded-2xl flex items-center justify-between shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-neutral-800 flex items-center justify-center font-black text-sm text-purple-400">S</div>
+                        <div>
+                          <div className="text-xs font-black text-white">SNAPSE · <span className="text-primary font-bold">$8.4K</span></div>
+                          <div className="text-[10px] text-gray-500 font-bold">1 earner</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs font-black text-white">$0</div>
+                        <div className="text-[10px] text-gray-500 font-bold">$0 claimable</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB C: ACTIVITY */}
+              {profileTab === "activity" && (
+                <div className="space-y-3">
+                  <div className="bg-cardBg border border-cardBorder p-4 rounded-2xl flex items-center justify-between shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary">🚀</div>
+                      <div>
+                        <div className="text-xs font-black text-white">SNAPSE · <span className="text-primary font-bold">Launched</span></div>
+                        <div className="text-[10px] text-gray-500 font-bold">1 week ago</div>
+                      </div>
+                    </div>
+                    <ExternalLink size={14} className="text-gray-500 hover:text-white cursor-pointer" />
+                  </div>
+
+                  <div className="bg-cardBg border border-cardBorder p-4 rounded-2xl flex items-center justify-between shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">🔻</div>
+                      <div>
+                        <div className="text-xs font-black text-white">LECTERN AI · <span className="text-red-500 font-bold">Sell $0.35</span></div>
+                        <div className="text-[10px] text-gray-500 font-bold">1 week ago</div>
+                      </div>
+                    </div>
+                    <ExternalLink size={14} className="text-gray-500 hover:text-white cursor-pointer" />
+                  </div>
+
+                  <div className="bg-cardBg border border-cardBorder p-4 rounded-2xl flex items-center justify-between shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400">🟢</div>
+                      <div>
+                        <div className="text-xs font-black text-white">LECTERN AI · <span className="text-emerald-400 font-bold">Buy $0.36</span></div>
+                        <div className="text-[10px] text-gray-500 font-bold">1 week ago</div>
+                      </div>
+                    </div>
+                    <ExternalLink size={14} className="text-gray-500 hover:text-white cursor-pointer" />
+                  </div>
+
+                  <div className="bg-cardBg border border-cardBorder p-4 rounded-2xl flex items-center justify-between shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary">🚀</div>
+                      <div>
+                        <div className="text-xs font-black text-white">LECTERN AI · <span className="text-primary font-bold">Launched</span></div>
+                        <div className="text-[10px] text-gray-500 font-bold">1 week ago</div>
+                      </div>
+                    </div>
+                    <ExternalLink size={14} className="text-gray-500 hover:text-white cursor-pointer" />
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
         </div>
