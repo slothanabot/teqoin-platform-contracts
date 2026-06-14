@@ -182,7 +182,24 @@ export default function Home() {
   const [isSwapping, setIsSwapping] = useState(false);
   const [userTokenBalance, setUserUserTokenBalance] = useState("0.00");
   const [userEthBalance, setUserEthBalance] = useState("0.00");
+  const [userEthBalance, setUserEthBalance] = useState("0.00");
 
+  // Selected Token Metadata Persistence State (Splits & Socials)
+  const [currentTokenMetadata, setCurrentTokenMetadata] = useState<any>(null);
+
+  useEffect(() => {
+    if (selectedToken) {
+      const saved = localStorage.getItem(`token_metadata_${selectedToken.tokenAddress.toLowerCase()}`);
+      if (saved) {
+        setCurrentTokenMetadata(JSON.parse(saved));
+      } else {
+        setCurrentTokenMetadata({
+          splits: [{ address: selectedToken.creator, percent: 100, type: "wallet" }],
+          socials: { website: "", twitter: "", telegram: "", discord: "", farcaster: "" }
+        });
+      }
+    }
+  }, [selectedToken, currentView]);
   // Fetch Real Token List from Contract
   const fetchTokens = async () => {
     try {
@@ -298,13 +315,38 @@ export default function Home() {
       });
 
       const hash = await walletClient.writeContract(request);
-      await publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+      // Fetch all tokens to find our deployed token's address
+      const updatedTokens: any = await publicClient.readContract({
+        address: FACTORY_ADDRESS,
+        abi: FACTORY_ABI,
+        functionName: "getAllTokens",
+      });
+
+      if (Array.isArray(updatedTokens) && updatedTokens.length > 0) {
+        const latestToken = updatedTokens[updatedTokens.length - 1];
+        const latestAddress = latestToken.tokenAddress;
+
+        // Persist splits and social links to localStorage under the address key
+        const tokenMetadata = {
+          splits: earningsReceivers,
+          socials: { website, twitter, telegram, discord, farcaster }
+        };
+        localStorage.setItem(`token_metadata_${latestAddress.toLowerCase()}`, JSON.stringify(tokenMetadata));
+      }
 
       alert("Token launched successfully! 🎉");
       setName("");
       setSymbol("");
       setImageUrl("");
       setDescription("");
+      setWebsite("");
+      setTwitter("");
+      setTelegram("");
+      setDiscord("");
+      setFarcaster("");
+      setEarningsReceivers([{ address: "@theovertheraa", percent: 100, type: "twitter" }]);
       fetchTokens();
       setCurrentView("home");
     } catch (err: any) {
@@ -954,6 +996,32 @@ export default function Home() {
                 </div>
               </div>
             </div>
+
+            {/* Split Receivers List (Persistent from localStorage) */}
+            {currentTokenMetadata && currentTokenMetadata.splits && (
+              <div className="bg-cardBg border border-cardBorder rounded-3xl p-5 space-y-3 shadow-xl">
+                <div className="text-xs font-extrabold text-gray-400 uppercase tracking-wider flex items-center gap-1.5 pl-1">
+                  <Coins size={14} className="text-primary" />
+                  Earning Share splits ({currentTokenMetadata.splits.length})
+                </div>
+                <div className="space-y-2">
+                  {currentTokenMetadata.splits.map((rec: any, idx: number) => (
+                    <div key={idx} className="flex justify-between items-center bg-background/50 border border-cardBorder/40 p-3 rounded-2xl text-xs">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-[10px]">
+                          {rec.address.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="font-extrabold text-white">{rec.address}</div>
+                          <div className="text-[9px] text-gray-500 uppercase font-bold tracking-wider">{rec.type}</div>
+                        </div>
+                      </div>
+                      <span className="font-black text-primary">{rec.percent}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Trading Widget */}
             <div className="bg-cardBg border border-cardBorder rounded-3xl p-5 space-y-4 shadow-xl">
