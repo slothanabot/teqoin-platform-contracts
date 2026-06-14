@@ -22,8 +22,8 @@ export const teqoinTestnet: Chain = {
 };
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  // We use a demo Privy App ID. The user can easily replace this in production settings.
-  const PRIVY_APP_ID = "clvyv8z9r00j812n6c2u9b3e1"; 
+  // Configured with your custom Privy App ID
+  const PRIVY_APP_ID = "cmqdk2v9000mv0dl45vty4gj9"; 
 
   return (
     <PrivyProvider
