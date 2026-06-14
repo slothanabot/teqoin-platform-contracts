@@ -32,7 +32,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         appearance: {
           theme: "dark",
           accentColor: "#FF2D78",
-          logo: "https://docs.teqoin.io/introduction/what-is-teqoin",
+          logo: "https://mintlify.s3.us-west-1.amazonaws.com/teqoin/logo/TeQoin.svg",
         },
         loginMethods: ["email", "google", "twitter", "wallet"],
         defaultChain: teqoinTestnet,
