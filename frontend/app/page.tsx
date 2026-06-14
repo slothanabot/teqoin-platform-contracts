@@ -19,7 +19,9 @@ import {
   BarChart2,
   TrendingUp,
   TrendingDown,
-  Coins
+  Coins,
+  Lock,
+  ChevronRight
 } from "lucide-react";
 
 // Deployed Smart Contract Addresses on TeQoin Testnet
