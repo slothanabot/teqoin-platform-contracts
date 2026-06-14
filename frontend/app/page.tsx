@@ -1125,7 +1125,8 @@ export default function Home() {
       </main>
 
       {/* 5. STICKY BOTTOM NAVBAR (Flaunch.gg Mobile Layout Copy) */}
-       <nav className="fixed bottom-5 left-1/2 transform -translate-x-1/2 w-[calc(100%-24px)] max-w-[424px] h-[58px] bg-cardBg/95 backdrop-blur-md border border-cardBorder/80 px-5 flex justify-between items-center z-50 shadow-2xl rounded-[24px]">
+      {!showShareEarnings && !showProfile && !showSearch && (
+        <nav className="fixed bottom-5 left-1/2 transform -translate-x-1/2 w-[calc(100%-24px)] max-w-[424px] h-[58px] bg-cardBg/95 backdrop-blur-md border border-cardBorder/80 px-5 flex justify-between items-center z-50 shadow-2xl rounded-[24px]">
         <div className="flex items-center gap-6">
           <button 
             onClick={() => setCurrentView("home")}
@@ -1154,16 +1155,16 @@ export default function Home() {
           {!ready ? (
             <div className="w-24 h-9 bg-cardBorder animate-pulse rounded-full" />
           ) : authenticated ? (
-            <button 
-              onClick={() => setShowProfile(true)}
-              className="w-10 h-10 rounded-full border border-primary/50 overflow-hidden focus:outline-none hover:border-primary transition-all active:scale-95 flex items-center justify-center shadow-md bg-neutral-900"
-            >
-              <img 
-                src={user?.google?.picture || user?.twitter?.profilePictureUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"} 
-                alt="Profile" 
-                className="w-full h-full object-cover"
-              />
-            </button>
+                <button 
+                  onClick={() => setShowProfile(true)}
+                  className="w-10 h-10 rounded-full border border-primary/50 overflow-hidden focus:outline-none hover:border-primary transition-all active:scale-95 flex items-center justify-center shadow-md bg-neutral-900"
+                >
+                  <img 
+                    src={(user as any)?.google?.picture || (user as any)?.twitter?.profilePictureUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"} 
+                    alt="Profile" 
+                    className="w-full h-full object-cover"
+                  />
+                </button>
           ) : (
             <button 
               onClick={() => login()}
@@ -1174,7 +1175,8 @@ export default function Home() {
             </button>
           )}
         </div>
-      </nav>
+       </nav>
+      )}
 
 
       {/* 6. FLAUNCH-STYLE PROFILE BOTTOM DRAWER WITH SECURE PRIVATE KEY EXPORT */}
@@ -1195,21 +1197,21 @@ export default function Home() {
             </div>
 
             {/* Profile Identity Card */}
-            <div className="bg-cardBg border border-cardBorder rounded-2xl p-4 flex items-center gap-4 shadow-sm">
-              <img 
-                src={user?.google?.picture || user?.twitter?.profilePictureUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"} 
-                alt="Profile Avatar" 
-                className="w-14 h-14 rounded-full object-cover border border-cardBorder shadow-sm"
-              />
-              <div className="space-y-1">
-                <div className="font-extrabold text-sm text-white">
-                  {user?.google?.email || user?.twitter?.username || "Authenticated User"}
-                </div>
-                <div className="text-[10px] text-gray-400 font-mono tracking-tight break-all">
-                  {activeWallet?.address ? `${activeWallet.address.slice(0, 8)}...${activeWallet.address.slice(-6)}` : "No Embedded Wallet"}
-                </div>
-              </div>
-            </div>
+             <div className="bg-cardBg border border-cardBorder rounded-2xl p-4 flex items-center gap-4 shadow-sm">
+               <img 
+                 src={(user as any)?.google?.picture || (user as any)?.twitter?.profilePictureUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"} 
+                 alt="Profile Avatar" 
+                 className="w-14 h-14 rounded-full object-cover border border-cardBorder shadow-sm"
+               />
+               <div className="space-y-1">
+                 <div className="font-extrabold text-sm text-white">
+                   {(user as any)?.google?.email || (user as any)?.twitter?.username || "Authenticated User"}
+                 </div>
+                 <div className="text-[10px] text-gray-400 font-mono tracking-tight break-all">
+                   {activeWallet?.address ? `${activeWallet.address.slice(0, 8)}...${activeWallet.address.slice(-6)}` : "No Embedded Wallet"}
+                 </div>
+               </div>
+             </div>
 
             {/* Settings & Export Private Key */}
             <div className="space-y-2.5">
