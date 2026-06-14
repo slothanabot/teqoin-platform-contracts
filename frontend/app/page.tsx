@@ -146,6 +146,7 @@ export default function Home() {
   const [tokens, setTokens] = useState<any[]>([]);
   const [isLoadingTokens, setIsLoadingTokens] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"trending" | "new" | "top" | "highvol">("trending");
 
   // Form State - Launch
@@ -484,17 +485,6 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Search Input */}
-            <div className="relative pt-1">
-              <input 
-                type="text" 
-                placeholder="Search tokens, symbols, addresses..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-cardBg border border-cardBorder rounded-2xl py-3.5 pl-10 pr-4 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all shadow-inner"
-              />
-              <Search className="absolute left-3.5 top-5.5 text-gray-500" size={16} />
-            </div>
 
             {/* 4. PREMIUM COMPACT TOKEN ROW LAYOUT (WITH SPARKLINE) */}
             <div className="space-y-2.5">
@@ -1062,14 +1052,8 @@ export default function Home() {
           </button>
           
           <button 
-            onClick={() => {
-              setCurrentView("home");
-              setTimeout(() => {
-                const input = document.querySelector('input[type="text"]');
-                if (input) (input as HTMLInputElement).focus();
-              }, 100);
-            }}
-            className="p-2 rounded-xl text-gray-400 hover:text-white transition-all"
+            onClick={() => setShowSearch(true)}
+            className={`p-2 rounded-xl transition-all ${showSearch ? "text-primary scale-105" : "text-gray-400 hover:text-white"}`}
           >
             <Search size={22} />
           </button>
@@ -1105,6 +1089,80 @@ export default function Home() {
           )}
         </div>
       </nav>
+
+      {/* 6. FLAUNCH-STYLE SEARCH BOTTOM DRAWER */}
+      {showSearch && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end justify-center">
+          <div className="w-full max-w-md bg-[#0F0F16] border-t border-cardBorder rounded-t-[32px] p-5 space-y-4 shadow-2xl relative animate-slide-up pb-[env(safe-area-inset-bottom,24px)]">
+            {/* Drag handle */}
+            <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-1"></div>
+            
+            {/* Trending Title */}
+            <div className="flex items-center gap-1.5 text-xs font-black text-gray-400 uppercase tracking-wider pl-1 pb-1">
+              <Flame size={14} className="text-primary animate-pulse" />
+              Trending
+            </div>
+
+            {/* Trending Coins List inside Search Drawer */}
+            <div className="space-y-3 max-h-[300px] overflow-y-auto scrollbar-none">
+              {filteredTokens.slice(0, 3).map((token: any, i: number) => {
+                const isUp = i % 2 === 0;
+                return (
+                  <div 
+                    key={i} 
+                    className="bg-cardBg border border-cardBorder rounded-2xl p-3.5 flex items-center justify-between cursor-pointer"
+                    onClick={() => {
+                      setSelectedToken(token);
+                      setSwapAmount("");
+                      setSwapOutput("0.00");
+                      setCurrentView("details");
+                      setShowSearch(false);
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <img 
+                        src={token.imageUrl} 
+                        alt={token.symbol} 
+                        className="w-10 h-10 rounded-full object-cover bg-neutral-800"
+                        onError={(e: any) => { e.target.src = "https://placeholder.co/150" }}
+                      />
+                      <div>
+                        <div className="font-extrabold text-white text-xs">{token.name}</div>
+                        <div className="text-[10px] text-gray-500 font-bold uppercase mt-0.5">{token.symbol}</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs font-black text-white">$970.1K</div>
+                      <div className={`text-[10px] font-black flex items-center justify-end gap-0.5 mt-0.5 ${isUp ? 'text-[#10B981]' : 'text-[#EF4444]'}`}>
+                        {isUp ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                        {isUp ? "+1.8%" : "-1.2%"}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Bottom Search Input Box - Sits inside Drawer, matching Flaunch perfectly */}
+            <div className="relative pt-2 border-t border-cardBorder/50">
+              <input 
+                type="text" 
+                placeholder="Search coins, CA, users"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-background border border-cardBorder rounded-2xl py-3.5 pl-10 pr-10 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary transition-all"
+              />
+              <Search className="absolute left-3.5 top-[23px] text-gray-500" size={16} />
+              <button 
+                onClick={() => { setShowSearch(false); setSearchQuery(""); }}
+                className="absolute right-3.5 top-[22px] p-1 rounded-full bg-cardBorder hover:bg-neutral-800 text-gray-400"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
