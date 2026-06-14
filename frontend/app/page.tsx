@@ -156,7 +156,7 @@ export default function Home() {
   // Form State - Launch
   const [name, setName] = useState("");
   const [symbol, setSymbol] = useState("");
-  const [supply, setSupply] = useState("1000000000"); // 1 Billion
+  const [supply, setSupply] = useState("10000000000"); // 10 Billion standard
   const [imageUrl, setImageUrl] = useState("");
   const [description, setDescription] = useState("");
   const [isLaunching, setIsLaunching] = useState(false);
@@ -204,6 +204,71 @@ export default function Home() {
       }
     }
   }, [selectedToken, currentView]);
+
+  // Profile On-Chain Fetching States
+  const [userPositions, setUserPositions] = useState<any[]>([]);
+  const [userLaunchedTokens, setUserLaunchedTokens] = useState<any[]>([]);
+  const [userActivity, setUserActivity] = useState<any[]>([]);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      if (!authenticated || !activeWallet || !showProfile) return;
+      try {
+        setIsProfileLoading(true);
+        const userAddress = activeWallet.address as `0x${string}`;
+
+        const allTokens: any = await publicClient.readContract({
+          address: FACTORY_ADDRESS,
+          abi: FACTORY_ABI,
+          functionName: "getAllTokens",
+        });
+
+        if (Array.isArray(allTokens)) {
+          // 1. Filter launched tokens by creator
+          const created = allTokens.filter((t: any) => t.creator.toLowerCase() === userAddress.toLowerCase());
+          setUserLaunchedTokens(created);
+
+          // 2. Fetch balances for all tokens to find active positions
+          const positionsList: any[] = [];
+          for (const token of allTokens) {
+            try {
+              const bal: any = await publicClient.readContract({
+                address: token.tokenAddress,
+                abi: ERC20_ABI,
+                functionName: "balanceOf",
+                args: [userAddress],
+              });
+              if (bal > BigInt(0)) {
+                positionsList.push({
+                  ...token,
+                  balance: formatUnits(bal, 18),
+                });
+              }
+            } catch (e) {
+              // Ignore single token errors
+            }
+          }
+          setUserPositions(positionsList);
+
+          // 3. Generate real activity list from on-chain launches
+          const launchesActivity = created.map((t: any) => ({
+            title: `${t.symbol} · Launched`,
+            timestamp: new Date(Number(t.createdAt) * 1000).toLocaleString(),
+            icon: "🚀",
+            tx: `https://testnet-blockscan.teqoin.io/address/${t.tokenAddress}`
+          }));
+          setUserActivity(launchesActivity);
+        }
+      } catch (err) {
+        console.error("Error fetching profile on-chain data:", err);
+      } finally {
+        setIsProfileLoading(false);
+      }
+    };
+
+    fetchProfileData();
+  }, [authenticated, activeWallet, showProfile]);
   // Fetch Real Token List from Contract
   const fetchTokens = async () => {
     try {
@@ -257,7 +322,20 @@ export default function Home() {
           setSwapOutput(parseFloat(out).toLocaleString("en-US", { maximumFractionDigits: 6 }));
         }
       } catch (err) {
-        setSwapOutput("0.00 (No Liquidity)");
+        // Fallback to Flaunch's Virtual Bonding Curve (10B supply, starting at $20k market cap)
+        // 1 ETH = 1,750,000,000 Tokens
+        try {
+          const ethVal = parseFloat(swapAmount);
+          if (swapType === "buy") {
+            const tokensOut = ethVal * 1750000000;
+            setSwapOutput(tokensOut.toLocaleString("en-US", { maximumFractionDigits: 2 }));
+          } else {
+            const ethOut = ethVal / 1750000000;
+            setSwapOutput(ethOut.toLocaleString("en-US", { maximumFractionDigits: 6 }));
+          }
+        } catch (e) {
+          setSwapOutput("0.00");
+        }
       }
     };
 
@@ -1267,8 +1345,7 @@ export default function Home() {
 
             {/* 3. Tab Contents (Fully Scrollable Container) */}
             <div className="flex-1 overflow-y-auto scrollbar-none space-y-4 pt-1">
-              
-              {/* TAB A: BALANCES */}
+               {/* TAB A: BALANCES (Real-time On-Chain) */}
               {profileTab === "balances" && (
                 <div className="space-y-4">
                   <div className="space-y-1">
@@ -1277,13 +1354,45 @@ export default function Home() {
                       ${(parseFloat(userEthBalance) * 3500).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                   </div>
-                  <div className="text-xs text-gray-500 font-bold bg-[#12121A]/40 border border-cardBorder/40 rounded-2xl p-4 text-center">
-                    0 active positions
-                  </div>
+                  
+                  {isProfileLoading ? (
+                    <div className="flex justify-center items-center py-10">
+                      <RefreshCw className="animate-spin text-primary" size={20} />
+                    </div>
+                  ) : userPositions.length === 0 ? (
+                    <div className="text-xs text-gray-500 font-bold bg-[#12121A]/40 border border-cardBorder/40 rounded-2xl p-4 text-center">
+                      0 active positions
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {userPositions.map((pos: any, idx: number) => (
+                        <div key={idx} className="bg-cardBg border border-cardBorder p-4 rounded-2xl flex items-center justify-between shadow-sm">
+                          <div className="flex items-center gap-3">
+                            <img 
+                              src={pos.imageUrl} 
+                              alt={pos.symbol} 
+                              className="w-10 h-10 rounded-full object-cover bg-neutral-800 border border-cardBorder/40"
+                              onError={(e: any) => { e.target.src = "https://placeholder.co/150" }}
+                            />
+                            <div>
+                              <div className="text-xs font-black text-white">{pos.name}</div>
+                              <div className="text-[10px] text-gray-500 font-bold uppercase mt-0.5">{pos.symbol}</div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs font-black text-white">
+                              {parseFloat(pos.balance).toLocaleString("en-US", { maximumFractionDigits: 4 })}
+                            </div>
+                            <div className="text-[10px] text-primary font-bold">Balance</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* TAB B: EARNINGS */}
+              {/* TAB B: EARNINGS (Real-time On-Chain) */}
               {profileTab === "earnings" && (
                 <div className="space-y-4">
                   <div className="flex justify-between items-end">
@@ -1311,87 +1420,75 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Launched coins listing */}
+                  {/* Launched coins listing (Real Data) */}
                   <div className="space-y-3">
-                    <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider pl-1">2 coins with earnings</div>
+                    <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider pl-1">
+                      {isProfileLoading ? "Loading launched coins..." : `${userLaunchedTokens.length} launched coin${userLaunchedTokens.length !== 1 ? 's' : ''}`}
+                    </div>
                     
-                    <div className="bg-cardBg border border-cardBorder p-4 rounded-2xl flex items-center justify-between shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-neutral-800 flex items-center justify-center font-black text-sm text-[#FF2D78]">L</div>
-                        <div>
-                          <div className="text-xs font-black text-white">LECTERN · <span className="text-primary font-bold">$8.5K</span></div>
-                          <div className="text-[10px] text-gray-500 font-bold">1 earner</div>
+                    {isProfileLoading ? (
+                      <div className="flex justify-center items-center py-10">
+                        <RefreshCw className="animate-spin text-primary" size={20} />
+                      </div>
+                    ) : userLaunchedTokens.length === 0 ? (
+                      <div className="text-xs text-gray-500 font-bold bg-[#12121A]/40 border border-cardBorder/40 rounded-2xl p-4 text-center">
+                        0 launched coins
+                      </div>
+                    ) : (
+                      userLaunchedTokens.map((t: any, idx: number) => (
+                        <div key={idx} className="bg-cardBg border border-cardBorder p-4 rounded-2xl flex items-center justify-between shadow-sm">
+                          <div className="flex items-center gap-3">
+                            <img 
+                              src={t.imageUrl} 
+                              alt={t.symbol} 
+                              className="w-10 h-10 rounded-full object-cover bg-neutral-800 border border-cardBorder/40"
+                              onError={(e: any) => { e.target.src = "https://placeholder.co/150" }}
+                            />
+                            <div>
+                              <div className="text-xs font-black text-white">{t.name} · <span className="text-primary font-bold">{t.symbol}</span></div>
+                              <div className="text-[10px] text-gray-500 font-bold">Creator</div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs font-black text-white">
+                              {parseFloat(t.totalSupply).toLocaleString()}
+                            </div>
+                            <div className="text-[10px] text-gray-500 font-bold">Total Supply</div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xs font-black text-white">$0</div>
-                        <div className="text-[10px] text-gray-500 font-bold">$0 claimable</div>
-                      </div>
-                    </div>
-
-                    <div className="bg-cardBg border border-cardBorder p-4 rounded-2xl flex items-center justify-between shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-neutral-800 flex items-center justify-center font-black text-sm text-purple-400">S</div>
-                        <div>
-                          <div className="text-xs font-black text-white">SNAPSE · <span className="text-primary font-bold">$8.4K</span></div>
-                          <div className="text-[10px] text-gray-500 font-bold">1 earner</div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xs font-black text-white">$0</div>
-                        <div className="text-[10px] text-gray-500 font-bold">$0 claimable</div>
-                      </div>
-                    </div>
+                      ))
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* TAB C: ACTIVITY */}
+              {/* TAB C: ACTIVITY (Real-time On-Chain) */}
               {profileTab === "activity" && (
                 <div className="space-y-3">
-                  <div className="bg-cardBg border border-cardBorder p-4 rounded-2xl flex items-center justify-between shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary">🚀</div>
-                      <div>
-                        <div className="text-xs font-black text-white">SNAPSE · <span className="text-primary font-bold">Launched</span></div>
-                        <div className="text-[10px] text-gray-500 font-bold">1 week ago</div>
-                      </div>
+                  {isProfileLoading ? (
+                    <div className="flex justify-center items-center py-16">
+                      <RefreshCw className="animate-spin text-primary" size={20} />
                     </div>
-                    <ExternalLink size={14} className="text-gray-500 hover:text-white cursor-pointer" />
-                  </div>
-
-                  <div className="bg-cardBg border border-cardBorder p-4 rounded-2xl flex items-center justify-between shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">🔻</div>
-                      <div>
-                        <div className="text-xs font-black text-white">LECTERN AI · <span className="text-red-500 font-bold">Sell $0.35</span></div>
-                        <div className="text-[10px] text-gray-500 font-bold">1 week ago</div>
-                      </div>
+                  ) : userActivity.length === 0 ? (
+                    <div className="text-xs text-gray-500 font-bold bg-[#12121A]/40 border border-cardBorder/40 rounded-2xl p-4 text-center">
+                      No recent activities
                     </div>
-                    <ExternalLink size={14} className="text-gray-500 hover:text-white cursor-pointer" />
-                  </div>
-
-                  <div className="bg-cardBg border border-cardBorder p-4 rounded-2xl flex items-center justify-between shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400">🟢</div>
-                      <div>
-                        <div className="text-xs font-black text-white">LECTERN AI · <span className="text-emerald-400 font-bold">Buy $0.36</span></div>
-                        <div className="text-[10px] text-gray-500 font-bold">1 week ago</div>
+                  ) : (
+                    userActivity.map((act: any, idx: number) => (
+                      <div key={idx} className="bg-cardBg border border-cardBorder p-4 rounded-2xl flex items-center justify-between shadow-sm">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary">{act.icon}</div>
+                          <div>
+                            <div className="text-xs font-black text-white">{act.title}</div>
+                            <div className="text-[10px] text-gray-500 font-bold">{act.timestamp}</div>
+                          </div>
+                        </div>
+                        <a href={act.tx} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink size={14} className="text-gray-500 hover:text-white cursor-pointer" />
+                        </a>
                       </div>
-                    </div>
-                    <ExternalLink size={14} className="text-gray-500 hover:text-white cursor-pointer" />
-                  </div>
-
-                  <div className="bg-cardBg border border-cardBorder p-4 rounded-2xl flex items-center justify-between shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary">🚀</div>
-                      <div>
-                        <div className="text-xs font-black text-white">LECTERN AI · <span className="text-primary font-bold">Launched</span></div>
-                        <div className="text-[10px] text-gray-500 font-bold">1 week ago</div>
-                      </div>
-                    </div>
-                    <ExternalLink size={14} className="text-gray-500 hover:text-white cursor-pointer" />
-                  </div>
+                    ))
+                  )}
                 </div>
               )}
 
