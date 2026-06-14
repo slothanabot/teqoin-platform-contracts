@@ -15,7 +15,10 @@ import {
   CheckCircle,
   Plus,
   Home as HomeIcon,
-  Lock
+  Sparkles,
+  BarChart2,
+  TrendingUp,
+  TrendingDown
 } from "lucide-react";
 
 // Deployed Smart Contract Addresses on TeQoin Testnet
@@ -23,7 +26,6 @@ const FACTORY_ADDRESS = "0x1FB4F3e6e7d57aE31F5495973CA9298af383d18C";
 const ROUTER_ADDRESS = "0xFfa2Af532BF7225af501eA0420b28B2B7698c0b6";
 const WETH_ADDRESS = "0xbed97c4c145313c1738921a1fc4CC49Fa3Ddf518";
 
-// Custom Chain definition
 const teqoinTestnet = {
   id: 420377,
   name: "TeQoin Testnet",
@@ -31,13 +33,11 @@ const teqoinTestnet = {
   rpcUrls: { default: { http: ["https://rpc-testnet.teqoin.io"] } },
 };
 
-// Viem Public Client for Real-time Reading
 const publicClient = createPublicClient({
   chain: teqoinTestnet,
   transport: http(),
 });
 
-// ABIs
 const FACTORY_ABI = [
   {
     name: "getAllTokens",
@@ -138,12 +138,12 @@ export default function Home() {
   const { wallets } = useWallets();
   const activeWallet = wallets[0];
 
-  // Navigation views: "home" | "launch" | "details"
+  // Navigation: "home" | "launch" | "details"
   const [currentView, setCurrentView] = useState<"home" | "launch" | "details">("home");
-  
   const [tokens, setTokens] = useState<any[]>([]);
   const [isLoadingTokens, setIsLoadingTokens] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState<"trending" | "new" | "top" | "highvol">("trending");
 
   // Form State - Launch
   const [name, setName] = useState("");
@@ -368,97 +368,179 @@ export default function Home() {
 
   return (
     <div className="flex flex-col flex-1 pb-24 select-none relative bg-background min-h-screen">
+      {/* 1. INFINITE SCROLLING TICKER (Marquee) */}
+      <div className="w-full bg-[#12121A] border-b border-cardBorder py-2 overflow-hidden relative z-50">
+        <div className="animate-marquee whitespace-nowrap flex gap-8 text-[11px] font-bold text-gray-400">
+          <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping"></span> TMLNCH <span className="text-primary font-extrabold">Launched</span></span>
+          <span>DRB <span className="text-red-500">Sell $8.26</span></span>
+          <span>ODAI <span className="text-green-400">Big Buy $1681.17</span></span>
+          <span>CABURO <span className="text-primary">Launched</span></span>
+          <span>FXLK <span className="text-green-400">Buy $120.44</span></span>
+          <span>TAKEOVER <span className="text-red-500">Sell $45.10</span></span>
+          {/* Duplicate for seamless scrolling */}
+          <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping"></span> TMLNCH <span className="text-primary font-extrabold">Launched</span></span>
+          <span>DRB <span className="text-red-500">Sell $8.26</span></span>
+          <span>ODAI <span className="text-green-400">Big Buy $1681.17</span></span>
+          <span>CABURO <span className="text-primary">Launched</span></span>
+          <span>FXLK <span className="text-green-400">Buy $120.44</span></span>
+          <span>TAKEOVER <span className="text-red-500">Sell $45.10</span></span>
+        </div>
+      </div>
+
       {/* GLOW DECORATIONS */}
-      <div className="absolute top-0 left-1/4 w-72 h-72 bg-primary/10 rounded-full blur-[120px] pointer-events-none z-0" />
+      <div className="absolute top-12 left-1/4 w-72 h-72 bg-primary/10 rounded-full blur-[120px] pointer-events-none z-0" />
       <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-purple-600/10 rounded-full blur-[120px] pointer-events-none z-0" />
 
-      {/* HEADER (Frosted Glassmorphism - Pure Logo) */}
-      <header className="px-5 py-4 flex justify-between items-center bg-cardBg/80 backdrop-blur-md border-b border-cardBorder sticky top-0 z-40">
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => setCurrentView("home")}>
-          <span className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-purple-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-primary/20">F</span>
-          <span className="text-xl font-black tracking-tight text-white">Flaunch<span className="text-primary">TQ</span></span>
-        </div>
-      </header>
-
-      {/* STATS STRIP */}
-      {currentView === "home" && (
-        <div className="px-5 py-3 flex gap-3 overflow-x-auto whitespace-nowrap scrollbar-none border-b border-cardBorder bg-background relative z-10">
-          <div className="bg-cardBg rounded-2xl px-4 py-2.5 border border-cardBorder min-w-[130px] flex-1">
-            <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Total Coins</div>
-            <div className="text-lg font-black text-white mt-0.5">{tokens.length} Deployed</div>
-          </div>
-          <div className="bg-cardBg rounded-2xl px-4 py-2.5 border border-cardBorder min-w-[130px] flex-1">
-            <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">TeQoin Gas</div>
-            <div className="text-lg font-black text-primary mt-0.5">8 wei 🔥</div>
-          </div>
-        </div>
-      )}
-
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 overflow-y-auto px-5 pt-5 relative z-10">
+      <main className="flex-1 overflow-y-auto px-5 pt-4 relative z-10">
         
         {/* VIEW 1: HOME (BROWSE TOKENS) */}
         {currentView === "home" && (
           <div className="space-y-4">
-            <div className="relative">
+            
+            {/* 2. PIXEL-PERFECT FLAUNCH HERO CARDS */}
+            <div className="space-y-3">
+              {/* Card 1: Total Creator Earnings */}
+              <div className="bg-cardBg border border-cardBorder rounded-[24px] p-5 flex justify-between items-center relative overflow-hidden shadow-lg">
+                <div className="space-y-1">
+                  <div className="text-[10px] text-gray-400 uppercase font-black tracking-widest">Total creator earnings</div>
+                  <div className="text-2xl font-black text-white leading-tight">$2,676,858</div>
+                </div>
+                {/* Right Badge (Capsule) */}
+                <div className="flex items-center gap-2 bg-[#1B1B26] border border-cardBorder py-1.5 px-3 rounded-full text-[10px] text-gray-300 font-extrabold shadow-sm">
+                  <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
+                  0x37E2...0e1C
+                  <span className="text-[9px] text-[#A78BFA] bg-[#2E284C] px-1.5 py-0.5 rounded font-bold">Claimed $16.09</span>
+                </div>
+              </div>
+
+              {/* Card 2: 24hr Volume */}
+              <div className="bg-cardBg border border-cardBorder rounded-[24px] p-5 flex justify-between items-center relative overflow-hidden shadow-lg">
+                <div className="space-y-1">
+                  <div className="text-[10px] text-gray-400 uppercase font-black tracking-widest">24hr volume</div>
+                  <div className="text-2xl font-black text-white leading-tight">$45,059</div>
+                </div>
+                {/* Right Badge (Capsule) */}
+                <div className="flex items-center gap-2 bg-[#1B1B26] border border-cardBorder py-1.5 px-3 rounded-full text-[10px] text-gray-300 font-extrabold shadow-sm">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  TAKEOVER
+                  <span className="text-[9px] text-[#34D399] bg-[#1E3A2F] px-1.5 py-0.5 rounded font-bold">BIG BUY $1506.34</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. CATEGORY PILL TABS */}
+            <div className="flex gap-2 overflow-x-auto whitespace-nowrap scrollbar-none py-1">
+              <button 
+                onClick={() => setActiveFilter("trending")}
+                className={`flex items-center gap-1 px-4 py-2.5 rounded-full text-xs font-black transition-all shadow-sm ${activeFilter === "trending" ? "bg-primary text-white" : "bg-cardBg border border-cardBorder text-gray-400 hover:text-white"}`}
+              >
+                <Flame size={13} fill={activeFilter === "trending" ? "currentColor" : "none"} />
+                Trending
+              </button>
+              
+              <button 
+                onClick={() => setActiveFilter("new")}
+                className={`flex items-center gap-1 px-4 py-2.5 rounded-full text-xs font-black transition-all shadow-sm ${activeFilter === "new" ? "bg-[#8B5CF6] text-white" : "bg-cardBg border border-cardBorder text-gray-400 hover:text-white"}`}
+              >
+                <Sparkles size={13} />
+                New
+              </button>
+
+              <button 
+                onClick={() => setActiveFilter("top")}
+                className={`flex items-center gap-1 px-4 py-2.5 rounded-full text-xs font-black transition-all shadow-sm ${activeFilter === "top" ? "bg-[#10B981] text-white" : "bg-cardBg border border-cardBorder text-gray-400 hover:text-white"}`}
+              >
+                <BarChart2 size={13} />
+                Top
+              </button>
+
+              <button 
+                onClick={() => setActiveFilter("highvol")}
+                className={`flex items-center gap-1 px-4 py-2.5 rounded-full text-xs font-black transition-all shadow-sm ${activeFilter === "highvol" ? "bg-[#3B82F6] text-white" : "bg-cardBg border border-cardBorder text-gray-400 hover:text-white"}`}
+              >
+                <ArrowDownUp size={13} />
+                High vol
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div className="relative pt-1">
               <input 
                 type="text" 
                 placeholder="Search tokens, symbols, addresses..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-cardBg border border-cardBorder rounded-2xl py-3.5 pl-10 pr-4 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
+                className="w-full bg-cardBg border border-cardBorder rounded-2xl py-3.5 pl-10 pr-4 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all shadow-inner"
               />
-              <Search className="absolute left-3.5 top-4 text-gray-500" size={16} />
+              <Search className="absolute left-3.5 top-5.5 text-gray-500" size={16} />
             </div>
 
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-xs text-gray-400 font-extrabold uppercase tracking-wider pl-1">
-                <Flame size={14} className="text-primary animate-pulse" />
-                Live Coins on TeQoin
-              </div>
-
+            {/* 4. PREMIUM COMPACT TOKEN ROW LAYOUT (WITH SPARKLINE) */}
+            <div className="space-y-2.5">
               {isLoadingTokens ? (
                 <div className="flex justify-center items-center py-16">
                   <RefreshCw className="animate-spin text-primary" size={24} />
                 </div>
               ) : filteredTokens.length === 0 ? (
-                <div className="text-center py-16 text-gray-500 text-sm bg-cardBg rounded-2xl border border-cardBorder p-6">
+                <div className="text-center py-16 text-gray-500 text-sm bg-cardBg rounded-2xl border border-cardBorder p-6 shadow-md">
                   No tokens deployed yet. Be the first to launch! 🚀
                 </div>
               ) : (
-                filteredTokens.map((token: any, i: number) => (
-                  <div 
-                    key={i} 
-                    className="bg-cardBg border border-cardBorder rounded-2xl p-4 flex items-center justify-between hover:border-primary/40 active:scale-[0.99] transition-all cursor-pointer shadow-md"
-                    onClick={() => {
-                      setSelectedToken(token);
-                      setSwapAmount("");
-                      setSwapOutput("0.00");
-                      setCurrentView("details");
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <img 
-                        src={token.imageUrl} 
-                        alt={token.symbol} 
-                        className="w-12 h-12 rounded-xl object-cover bg-neutral-800 border border-cardBorder"
-                        onError={(e: any) => { e.target.src = "https://placeholder.co/150" }}
-                      />
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-extrabold text-white text-sm">{token.symbol}</span>
-                          <span className="text-[9px] bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded font-black">L2</span>
+                filteredTokens.map((token: any, i: number) => {
+                  const isUp = i % 2 === 0; // Alternating for dynamic testnet look
+                  return (
+                    <div 
+                      key={i} 
+                      className="bg-cardBg/60 border border-cardBorder/80 rounded-2xl p-4 flex items-center justify-between hover:border-primary/40 active:scale-[0.99] transition-all cursor-pointer shadow-md"
+                      onClick={() => {
+                        setSelectedToken(token);
+                        setSwapAmount("");
+                        setSwapOutput("0.00");
+                        setCurrentView("details");
+                      }}
+                    >
+                      {/* Left: Avatar + Name/Symbol */}
+                      <div className="flex items-center gap-3">
+                        <img 
+                          src={token.imageUrl} 
+                          alt={token.symbol} 
+                          className="w-11 h-11 rounded-full object-cover bg-neutral-800 border border-cardBorder/60"
+                          onError={(e: any) => { e.target.src = "https://placeholder.co/150" }}
+                        />
+                        <div>
+                          <div className="font-extrabold text-white text-[14px] leading-tight">{token.name}</div>
+                          <div className="text-[11px] text-gray-400 font-bold mt-0.5 uppercase tracking-wide">{token.symbol}</div>
                         </div>
-                        <div className="text-xs text-gray-400 line-clamp-1 max-w-[150px] mt-0.5">{token.name}</div>
+                      </div>
+
+                      {/* Center: Premium SVG Sparkline */}
+                      <div className="w-20 h-8 flex items-center">
+                        <svg className="w-full h-full" viewBox="0 0 100 30">
+                          <path 
+                            d={isUp 
+                              ? "M0,25 Q15,5 30,20 T60,8 T90,15 L100,5" 
+                              : "M0,5 Q15,25 30,12 T60,25 T90,15 L100,28"
+                            } 
+                            fill="none" 
+                            stroke={isUp ? "#10B981" : "#EF4444"} 
+                            strokeWidth="2.5" 
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </div>
+
+                      {/* Right: Market Cap & Price Move */}
+                      <div className="text-right">
+                        <div className="font-black text-white text-sm">$971.4K</div>
+                        <div className={`text-[10px] font-black flex items-center justify-end gap-0.5 mt-0.5 ${isUp ? 'text-[#10B981]' : 'text-[#EF4444]'}`}>
+                          {isUp ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                          {isUp ? "+1.8%" : "-1.2%"}
+                        </div>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end">
-                      <span className="text-xs bg-primary bg-opacity-10 text-primary border border-primary border-opacity-20 px-4 py-2 rounded-xl font-extrabold hover:bg-opacity-20 active:scale-95 transition-all">
-                        Trade
-                      </span>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
@@ -579,7 +661,7 @@ export default function Home() {
                 <img 
                   src={selectedToken.imageUrl} 
                   alt={selectedToken.symbol} 
-                  className="w-16 h-128 max-h-16 rounded-2xl object-cover bg-neutral-800 border border-cardBorder shadow-sm"
+                  className="w-16 h-16 rounded-2xl object-cover bg-neutral-800 border border-cardBorder shadow-sm"
                   onError={(e: any) => { e.target.src = "https://placeholder.co/150" }}
                 />
                 <div className="space-y-1">
@@ -691,7 +773,7 @@ export default function Home() {
         )}
       </main>
 
-      {/* STICKY BOTTOM NAVBAR (Flaunch.gg Mobile Layout Copy) */}
+      {/* 5. STICKY BOTTOM NAVBAR (Flaunch.gg Mobile Layout Copy) */}
       <nav className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-cardBg/90 backdrop-blur-md border-t border-cardBorder pt-3.5 pb-[env(safe-area-inset-bottom,16px)] px-6 flex justify-between items-center z-50 shadow-2xl">
         <div className="flex items-center gap-6">
           <button 
@@ -729,7 +811,7 @@ export default function Home() {
           ) : authenticated ? (
             <button 
               onClick={() => logout()}
-              className="px-4 py-2 rounded-full bg-cardBorder hover:bg-opacity-80 text-white font-extrabold text-xs flex items-center gap-1.5 transition-all border border-cardBorder"
+              className="px-4 py-2 rounded-full bg-cardBorder hover:bg-opacity-80 text-white font-extrabold text-[11px] flex items-center gap-1.5 transition-all border border-cardBorder"
             >
               <Wallet size={12} className="text-primary" />
               {activeWallet?.address ? `${activeWallet.address.slice(0, 4)}...${activeWallet.address.slice(-3)}` : "Profile"}
