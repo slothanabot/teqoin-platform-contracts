@@ -1110,7 +1110,7 @@ export default function Home() {
       </main>
 
       {/* 5. STICKY BOTTOM NAVBAR (Flaunch.gg Mobile Layout Copy) */}
-      <nav className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-cardBg/90 backdrop-blur-md border-t border-cardBorder pt-3.5 pb-[env(safe-area-inset-bottom,16px)] px-6 flex justify-between items-center z-50 shadow-2xl">
+      <nav className="fixed bottom-5 left-1/2 transform -translate-x-1/2 w-[calc(100%-24px)] max-w-[424px] bg-cardBg/95 backdrop-blur-md border border-cardBorder/80 py-3.5 px-5 flex justify-between items-center z-50 shadow-2xl rounded-[24px]">
         <div className="flex items-center gap-6">
           <button 
             onClick={() => setCurrentView("home")}
