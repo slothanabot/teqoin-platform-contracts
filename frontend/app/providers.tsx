@@ -1,12 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { http, createConfig, WagmiProvider } from "wagmi";
+import { PrivyProvider } from "@privy-io/react-auth";
 import { type Chain } from "viem";
-import { injected } from "wagmi/connectors";
 
-// Define custom TeQoin Testnet chain
+// Define custom TeQoin Testnet chain for Privy
 export const teqoinTestnet: Chain = {
   id: 420377,
   name: "TeQoin Testnet",
@@ -24,22 +21,28 @@ export const teqoinTestnet: Chain = {
   testnet: true,
 };
 
-const config = createConfig({
-  chains: [teqoinTestnet],
-  connectors: [injected()],
-  transports: {
-    [teqoinTestnet.id]: http(),
-  },
-});
-
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient());
+  // We use a demo Privy App ID. The user can easily replace this in production settings.
+  const PRIVY_APP_ID = "clvyv8z9r00j812n6c2u9b3e1"; 
 
   return (
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
-    </WagmiProvider>
+    <PrivyProvider
+      appId={PRIVY_APP_ID}
+      config={{
+        appearance: {
+          theme: "dark",
+          accentColor: "#FF2D78",
+          logo: "https://docs.teqoin.io/introduction/what-is-teqoin",
+        },
+        loginMethods: ["email", "google", "twitter", "wallet"],
+        defaultChain: teqoinTestnet,
+        supportedChains: [teqoinTestnet],
+        embeddedWallets: {
+          createOnLogin: "users-without-wallets",
+        },
+      }}
+    >
+      {children}
+    </PrivyProvider>
   );
 }
