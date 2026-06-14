@@ -3,7 +3,7 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "TeQoin Flaunch - Token Launcher",
+   title: "FlaunchTQ - Token Launcher",
   description: "Launch ERC-20 meme coins in TeQoin L2 testnet with no code",
 };
 
