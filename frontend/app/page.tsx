@@ -182,7 +182,6 @@ export default function Home() {
   const [isSwapping, setIsSwapping] = useState(false);
   const [userTokenBalance, setUserUserTokenBalance] = useState("0.00");
   const [userEthBalance, setUserEthBalance] = useState("0.00");
-  const [userEthBalance, setUserEthBalance] = useState("0.00");
 
   // Selected Token Metadata Persistence State (Splits & Socials)
   const [currentTokenMetadata, setCurrentTokenMetadata] = useState<any>(null);
