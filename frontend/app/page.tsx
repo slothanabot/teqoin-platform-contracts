@@ -250,7 +250,7 @@ export default function Home() {
       <header className="px-5 py-4 flex justify-between items-center bg-cardBg border-b border-cardBorder">
         <div className="flex items-center gap-2">
           <span className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-purple-600 flex items-center justify-center text-white font-extrabold text-lg">F</span>
-          <span className="text-xl font-bold tracking-tight text-white">Teq<span className="text-primary">Flaunch</span></span>
+          <span className="text-xl font-bold tracking-tight text-white">Flaunch<span className="text-primary">TQ</span></span>
         </div>
         {isConnected ? (
           <button 
