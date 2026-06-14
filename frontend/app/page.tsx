@@ -15,7 +15,9 @@ import {
   TrendingUp,
   ExternalLink,
   Lock,
-  Coins
+  Coins,
+  ChevronRight,
+  TrendingDown
 } from "lucide-react";
 
 // Deployed Smart Contract Addresses on TeQoin Testnet
@@ -134,7 +136,7 @@ const ERC20_ABI = [
 ];
 
 export default function Home() {
-  const { login, logout, authenticated, ready, user } = usePrivy();
+  const { login, logout, authenticated, ready } = usePrivy();
   const { wallets } = useWallets();
   const activeWallet = wallets[0];
 
@@ -252,7 +254,6 @@ export default function Home() {
     if (!name || !symbol || !supply || !activeWallet) return;
     try {
       setIsLaunching(true);
-      // Switch network to TeQoin Testnet if needed
       await activeWallet.switchChain(teqoinTestnet.id);
 
       const provider = await activeWallet.getEthereumProvider();
@@ -315,7 +316,6 @@ export default function Home() {
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 20); // 20m
 
       if (swapType === "buy") {
-        // Direct ETH Swap
         const { request } = await publicClient.simulateContract({
           account: activeWallet.address as `0x${string}`,
           address: ROUTER_ADDRESS,
@@ -329,7 +329,6 @@ export default function Home() {
         await publicClient.waitForTransactionReceipt({ hash });
         alert("Swap completed successfully! 🚀");
       } else {
-        // Approve first for selling
         const amountIn = parseUnits(swapAmount, 18);
         const { request: approveRequest } = await publicClient.simulateContract({
           account: activeWallet.address as `0x${string}`,
@@ -341,7 +340,6 @@ export default function Home() {
         const approveHash = await walletClient.writeContract(approveRequest);
         await publicClient.waitForTransactionReceipt({ hash: approveHash });
 
-        // Sell
         const { request: swapRequest } = await publicClient.simulateContract({
           account: activeWallet.address as `0x${string}`,
           address: ROUTER_ADDRESS,
@@ -370,48 +368,52 @@ export default function Home() {
   );
 
   return (
-    <div className="flex flex-col flex-1 pb-20 select-none">
-      {/* HEADER */}
-      <header className="px-5 py-4 flex justify-between items-center bg-cardBg border-b border-cardBorder sticky top-0 z-40">
+    <div className="flex flex-col flex-1 pb-24 select-none relative">
+      {/* GLOW DECORATIONS (Premium Aesthetic) */}
+      <div className="absolute top-0 left-1/4 w-72 h-72 bg-primary/10 rounded-full blur-[120px] pointer-events-none z-0" />
+      <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-purple-600/10 rounded-full blur-[120px] pointer-events-none z-0" />
+
+      {/* HEADER (Frosted Glassmorphism) */}
+      <header className="px-5 py-4 flex justify-between items-center bg-cardBg/80 backdrop-blur-md border-b border-cardBorder sticky top-0 z-40">
         <div className="flex items-center gap-2">
-          <span className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-purple-600 flex items-center justify-center text-white font-extrabold text-lg">F</span>
-          <span className="text-xl font-bold tracking-tight text-white">Flaunch<span className="text-primary">TQ</span></span>
+          <span className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-purple-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-primary/20">F</span>
+          <span className="text-xl font-black tracking-tight text-white">Flaunch<span className="text-primary">TQ</span></span>
         </div>
         {!ready ? (
-          <div className="w-24 h-8 bg-cardBorder animate-pulse rounded-full" />
+          <div className="w-24 h-9 bg-cardBorder animate-pulse rounded-full" />
         ) : authenticated ? (
           <button 
             onClick={() => logout()}
-            className="px-3 py-1.5 rounded-full bg-cardBorder hover:bg-opacity-80 text-white font-semibold text-xs flex items-center gap-1.5 transition-all"
+            className="px-4 py-2 rounded-xl bg-cardBorder hover:bg-opacity-80 text-white font-bold text-xs flex items-center gap-2 transition-all border border-cardBorder shadow-sm"
           >
-            <Wallet size={12} className="text-primary" />
-            {activeWallet?.address ? `${activeWallet.address.slice(0, 5)}...${activeWallet.address.slice(-4)}` : "Logged In"}
+            <Wallet size={14} className="text-primary" />
+            {activeWallet?.address ? `${activeWallet.address.slice(0, 5)}...${activeWallet.address.slice(-4)}` : "Profile"}
           </button>
         ) : (
           <button 
             onClick={() => login()}
-            className="px-4 py-1.5 rounded-full bg-primary hover:bg-opacity-90 text-white font-semibold text-xs flex items-center gap-1.5 transition-all shadow-lg"
+            className="px-5 py-2.5 rounded-xl bg-primary hover:bg-opacity-90 active:scale-[0.97] text-white font-extrabold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-primary/25"
           >
-            <Wallet size={12} />
+            <Wallet size={14} />
             Connect
           </button>
         )}
       </header>
 
       {/* STATS STRIP */}
-      <div className="px-5 py-3 flex gap-3 overflow-x-auto whitespace-nowrap scrollbar-none border-b border-cardBorder bg-background">
-        <div className="bg-cardBg rounded-xl px-4 py-2 border border-cardBorder min-w-[120px] flex-1">
-          <div className="text-[10px] text-gray-400 uppercase font-bold">Total Coins</div>
-          <div className="text-lg font-bold text-white mt-0.5">{tokens.length} Deployed</div>
+      <div className="px-5 py-3 flex gap-3 overflow-x-auto whitespace-nowrap scrollbar-none border-b border-cardBorder bg-background relative z-10">
+        <div className="bg-cardBg rounded-2xl px-4 py-2.5 border border-cardBorder min-w-[130px] flex-1">
+          <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Total Coins</div>
+          <div className="text-lg font-black text-white mt-0.5">{tokens.length} Deployed</div>
         </div>
-        <div className="bg-cardBg rounded-xl px-4 py-2 border border-cardBorder min-w-[120px] flex-1">
-          <div className="text-[10px] text-gray-400 uppercase font-bold">TeQoin Gas</div>
-          <div className="text-lg font-bold text-green-400 mt-0.5">8 wei 🔥</div>
+        <div className="bg-cardBg rounded-2xl px-4 py-2.5 border border-cardBorder min-w-[130px] flex-1">
+          <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">TeQoin Gas</div>
+          <div className="text-lg font-black text-primary mt-0.5">8 wei 🔥</div>
         </div>
       </div>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 overflow-y-auto px-5 pt-4">
+      <main className="flex-1 overflow-y-auto px-5 pt-5 relative z-10">
         
         {/* TAB 1: HOME (BROWSE TOKENS) */}
         {activeTab === "home" && (
@@ -422,30 +424,30 @@ export default function Home() {
                 placeholder="Search tokens, symbols, addresses..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-cardBg border border-cardBorder rounded-2xl py-3 pl-10 pr-4 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary transition-all"
+                className="w-full bg-cardBg border border-cardBorder rounded-2xl py-3.5 pl-10 pr-4 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
               />
-              <Search className="absolute left-3.5 top-3.5 text-gray-500" size={16} />
+              <Search className="absolute left-3.5 top-4 text-gray-500" size={16} />
             </div>
 
             <div className="space-y-3">
-              <div className="flex items-center gap-1.5 text-xs text-gray-400 font-bold uppercase tracking-wider pl-1">
+              <div className="flex items-center gap-2 text-xs text-gray-400 font-extrabold uppercase tracking-wider pl-1">
                 <Flame size={14} className="text-primary animate-pulse" />
                 Live Coins on TeQoin
               </div>
 
               {isLoadingTokens ? (
-                <div className="flex justify-center items-center py-12">
+                <div className="flex justify-center items-center py-16">
                   <RefreshCw className="animate-spin text-primary" size={24} />
                 </div>
               ) : filteredTokens.length === 0 ? (
-                <div className="text-center py-12 text-gray-500 text-sm bg-cardBg rounded-2xl border border-cardBorder p-6">
+                <div className="text-center py-16 text-gray-500 text-sm bg-cardBg rounded-2xl border border-cardBorder p-6">
                   No tokens deployed yet. Be the first to launch! 🚀
                 </div>
               ) : (
                 filteredTokens.map((token: any, i: number) => (
                   <div 
                     key={i} 
-                    className="bg-cardBg border border-cardBorder rounded-2xl p-4 flex items-center justify-between hover:border-primary/50 transition-all cursor-pointer shadow-md"
+                    className="bg-cardBg border border-cardBorder rounded-2xl p-4 flex items-center justify-between hover:border-primary/40 active:scale-[0.99] transition-all cursor-pointer shadow-md"
                     onClick={() => {
                       setSelectedToken(token);
                       setActiveTab("swap");
@@ -455,19 +457,19 @@ export default function Home() {
                       <img 
                         src={token.imageUrl} 
                         alt={token.symbol} 
-                        className="w-11 h-11 rounded-xl object-cover bg-neutral-800 border border-cardBorder"
+                        className="w-12 h-12 rounded-xl object-cover bg-neutral-800 border border-cardBorder"
                         onError={(e: any) => { e.target.src = "https://placeholder.co/150" }}
                       />
                       <div>
                         <div className="flex items-center gap-1.5">
                           <span className="font-extrabold text-white text-sm">{token.symbol}</span>
-                          <span className="text-[9px] bg-primary bg-opacity-10 text-primary border border-primary border-opacity-10 px-1.5 py-0.5 rounded font-bold">L2</span>
+                          <span className="text-[9px] bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded font-black">L2</span>
                         </div>
-                        <div className="text-[11px] text-gray-400 line-clamp-1 max-w-[150px] mt-0.5">{token.name}</div>
+                        <div className="text-xs text-gray-400 line-clamp-1 max-w-[150px] mt-0.5">{token.name}</div>
                       </div>
                     </div>
                     <div className="flex flex-col items-end">
-                      <span className="text-xs bg-primary bg-opacity-15 text-primary border border-primary border-opacity-20 px-3 py-1.5 rounded-xl font-bold hover:bg-opacity-25 transition-all">
+                      <span className="text-xs bg-primary bg-opacity-10 text-primary border border-primary border-opacity-20 px-4 py-2 rounded-xl font-extrabold hover:bg-opacity-20 active:scale-95 transition-all">
                         Trade
                       </span>
                     </div>
@@ -481,7 +483,7 @@ export default function Home() {
         {/* TAB 2: LAUNCH TOKEN FORM */}
         {activeTab === "launch" && (
           <div className="space-y-4">
-            <h2 className="text-lg font-extrabold text-white flex items-center gap-2 mb-2">
+            <h2 className="text-lg font-black text-white flex items-center gap-2 mb-2">
               <PlusCircle className="text-primary" size={20} />
               Launch New Coin
             </h2>
@@ -494,7 +496,7 @@ export default function Home() {
                   placeholder="e.g. TeQoin Shiba"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full mt-1.5 bg-background border border-cardBorder rounded-2xl py-3 px-4 text-sm text-white focus:outline-none focus:border-primary"
+                  className="w-full mt-1.5 bg-background border border-cardBorder rounded-2xl py-3 px-4 text-sm text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
                 />
               </div>
 
@@ -505,7 +507,7 @@ export default function Home() {
                   placeholder="e.g. TSHIB"
                   value={symbol}
                   onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-                  className="w-full mt-1.5 bg-background border border-cardBorder rounded-2xl py-3 px-4 text-sm text-white focus:outline-none focus:border-primary"
+                  className="w-full mt-1.5 bg-background border border-cardBorder rounded-2xl py-3 px-4 text-sm text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
                 />
               </div>
 
@@ -516,7 +518,7 @@ export default function Home() {
                   placeholder="e.g. 1000000000"
                   value={supply}
                   onChange={(e) => setSupply(e.target.value)}
-                  className="w-full mt-1.5 bg-background border border-cardBorder rounded-2xl py-3 px-4 text-sm text-white focus:outline-none focus:border-primary"
+                  className="w-full mt-1.5 bg-background border border-cardBorder rounded-2xl py-3 px-4 text-sm text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
                 />
               </div>
 
@@ -527,7 +529,7 @@ export default function Home() {
                   placeholder="https://..."
                   value={imageUrl}
                   onChange={(e) => setImageUrl(e.target.value)}
-                  className="w-full mt-1.5 bg-background border border-cardBorder rounded-2xl py-3 px-4 text-sm text-white focus:outline-none focus:border-primary"
+                  className="w-full mt-1.5 bg-background border border-cardBorder rounded-2xl py-3 px-4 text-sm text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
                 />
               </div>
 
@@ -538,14 +540,14 @@ export default function Home() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
-                  className="w-full mt-1.5 bg-background border border-cardBorder rounded-2xl py-3 px-4 text-sm text-white focus:outline-none focus:border-primary resize-none"
+                  className="w-full mt-1.5 bg-background border border-cardBorder rounded-2xl py-3 px-4 text-sm text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all resize-none"
                 />
               </div>
 
               <button 
                 onClick={handleLaunch}
                 disabled={isLaunching || !authenticated}
-                className="w-full bg-primary hover:bg-opacity-95 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 text-sm mt-2 shadow-lg"
+                className="w-full bg-primary hover:bg-opacity-95 active:scale-[0.98] text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 text-sm mt-2 shadow-lg shadow-primary/25"
               >
                 {isLaunching ? (
                   <>
@@ -571,7 +573,7 @@ export default function Home() {
         {/* TAB 3: SWAP/TRADE */}
         {activeTab === "swap" && (
           <div className="space-y-4">
-            <h2 className="text-lg font-extrabold text-white flex items-center gap-2 mb-2">
+            <h2 className="text-lg font-black text-white flex items-center gap-2 mb-2">
               <ArrowDownUp className="text-primary" size={20} />
               Trade Tokens
             </h2>
@@ -583,11 +585,11 @@ export default function Home() {
                   <img 
                     src={selectedToken.imageUrl} 
                     alt={selectedToken.symbol} 
-                    className="w-10 h-10 rounded-xl object-cover bg-neutral-800"
+                    className="w-11 h-11 rounded-xl object-cover bg-neutral-800 border border-cardBorder"
                     onError={(e: any) => { e.target.src = "https://placeholder.co/150" }}
                   />
                   <div>
-                    <div className="font-bold text-sm text-white">{selectedToken.name}</div>
+                    <div className="font-extrabold text-sm text-white">{selectedToken.name}</div>
                     <div className="text-xs text-primary font-bold">{selectedToken.symbol}</div>
                   </div>
                 </div>
@@ -596,13 +598,13 @@ export default function Home() {
                 <div className="flex bg-background p-1.5 rounded-2xl border border-cardBorder">
                   <button 
                     onClick={() => { setSwapType("buy"); setSwapAmount(""); }}
-                    className={`flex-1 py-2.5 rounded-xl font-bold text-xs transition-all ${swapType === "buy" ? "bg-primary text-white" : "text-gray-400 hover:text-white"}`}
+                    className={`flex-1 py-2.5 rounded-xl font-black text-xs transition-all ${swapType === "buy" ? "bg-primary text-white shadow" : "text-gray-400 hover:text-white"}`}
                   >
                     Buy
                   </button>
                   <button 
                     onClick={() => { setSwapType("sell"); setSwapAmount(""); }}
-                    className={`flex-1 py-2.5 rounded-xl font-bold text-xs transition-all ${swapType === "sell" ? "bg-red-500 text-white" : "text-gray-400 hover:text-white"}`}
+                    className={`flex-1 py-2.5 rounded-xl font-black text-xs transition-all ${swapType === "sell" ? "bg-red-500 text-white shadow" : "text-gray-400 hover:text-white"}`}
                   >
                     Sell
                   </button>
@@ -611,7 +613,7 @@ export default function Home() {
                 {/* Input Fields */}
                 <div className="space-y-3">
                   <div>
-                    <div className="flex justify-between text-[10px] font-bold text-gray-400 mb-1">
+                    <div className="flex justify-between text-xs font-bold text-gray-400 mb-1.5 px-1">
                       <span>SEND</span>
                       <span>Balance: {swapType === "buy" ? parseFloat(userEthBalance).toFixed(4) : parseFloat(userTokenBalance).toFixed(4)}</span>
                     </div>
@@ -621,9 +623,9 @@ export default function Home() {
                         placeholder="0.00"
                         value={swapAmount}
                         onChange={(e) => setSwapAmount(e.target.value)}
-                        className="w-full bg-background border border-cardBorder rounded-2xl py-3 px-4 pr-16 text-sm text-white font-bold focus:outline-none focus:border-primary"
+                        className="w-full bg-background border border-cardBorder rounded-2xl py-3.5 px-4 pr-16 text-sm text-white font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
                       />
-                      <span className="absolute right-4 top-3 text-xs font-bold text-gray-400">
+                      <span className="absolute right-4 top-3.5 text-xs font-bold text-gray-400">
                         {swapType === "buy" ? "ETH" : selectedToken.symbol}
                       </span>
                     </div>
@@ -636,7 +638,7 @@ export default function Home() {
                   </div>
 
                   <div>
-                    <div className="flex justify-between text-[10px] font-bold text-gray-400 mb-1">
+                    <div className="flex justify-between text-xs font-bold text-gray-400 mb-1.5 px-1">
                       <span>RECEIVE (Live Quote)</span>
                     </div>
                     <div className="relative">
@@ -645,9 +647,9 @@ export default function Home() {
                         placeholder="0.00"
                         readOnly
                         value={swapOutput}
-                        className="w-full bg-background border border-cardBorder rounded-2xl py-3 px-4 pr-16 text-sm text-white font-bold focus:outline-none"
+                        className="w-full bg-background border border-cardBorder rounded-2xl py-3.5 px-4 pr-16 text-sm text-white font-bold focus:outline-none"
                       />
-                      <span className="absolute right-4 top-3 text-xs font-bold text-gray-400">
+                      <span className="absolute right-4 top-3.5 text-xs font-bold text-gray-400">
                         {swapType === "buy" ? selectedToken.symbol : "ETH"}
                       </span>
                     </div>
@@ -658,7 +660,7 @@ export default function Home() {
                 <button 
                   onClick={handleSwap}
                   disabled={isSwapping || !authenticated || !swapAmount}
-                  className={`w-full py-3.5 rounded-2xl font-bold text-sm transition-all mt-2 disabled:opacity-50 ${swapType === "buy" ? "bg-primary text-white" : "bg-red-500 text-white"}`}
+                  className={`w-full py-4 rounded-2xl font-black text-sm transition-all mt-2 active:scale-[0.98] disabled:opacity-50 shadow-lg ${swapType === "buy" ? "bg-primary text-white shadow-primary/25" : "bg-red-500 text-white shadow-red-500/25"}`}
                 >
                   {isSwapping ? (
                     <span className="flex items-center justify-center gap-1.5">
@@ -681,27 +683,27 @@ export default function Home() {
         )}
       </main>
 
-      {/* BOTTOM NAVIGATION BAR */}
-      <nav className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-cardBg border-t border-cardBorder py-3 px-6 flex justify-around items-center z-50 shadow-lg">
+      {/* BOTTOM NAVIGATION BAR (Fully Polished, iOS Safe-Area Compatible) */}
+      <nav className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-cardBg border-t border-cardBorder pt-3 pb-[env(safe-area-inset-bottom,16px)] px-6 flex justify-around items-center z-50 shadow-2xl backdrop-blur-md bg-opacity-95">
         <button 
           onClick={() => setActiveTab("home")}
-          className={`flex flex-col items-center gap-1 transition-all ${activeTab === "home" ? "text-primary scale-110" : "text-gray-500 hover:text-white"}`}
+          className={`flex flex-col items-center gap-1 py-1 px-3.5 rounded-2xl transition-all ${activeTab === "home" ? "bg-primary/10 text-primary scale-105 font-bold" : "text-gray-400 hover:text-white"}`}
         >
-          <Flame size={20} />
+          <Flame size={20} fill={activeTab === "home" ? "currentColor" : "none"} />
           <span className="text-[10px] font-extrabold tracking-wider">Home</span>
         </button>
 
         <button 
           onClick={() => setActiveTab("launch")}
-          className={`flex flex-col items-center gap-1 transition-all ${activeTab === "launch" ? "text-primary scale-110" : "text-gray-500 hover:text-white"}`}
+          className={`flex flex-col items-center gap-1 py-1 px-3.5 rounded-2xl transition-all ${activeTab === "launch" ? "bg-primary/10 text-primary scale-105 font-bold" : "text-gray-400 hover:text-white"}`}
         >
-          <PlusCircle size={20} />
+          <PlusCircle size={20} fill={activeTab === "launch" ? "currentColor" : "none"} />
           <span className="text-[10px] font-extrabold tracking-wider">Launch</span>
         </button>
 
         <button 
           onClick={() => setActiveTab("swap")}
-          className={`flex flex-col items-center gap-1 transition-all ${activeTab === "swap" ? "text-primary scale-110" : "text-gray-500 hover:text-white"}`}
+          className={`flex flex-col items-center gap-1 py-1 px-3.5 rounded-2xl transition-all ${activeTab === "swap" ? "bg-primary/10 text-primary scale-105 font-bold" : "text-gray-400 hover:text-white"}`}
         >
           <ArrowDownUp size={20} />
           <span className="text-[10px] font-extrabold tracking-wider">Swap</span>
