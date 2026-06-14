@@ -13,13 +13,8 @@ import {
   ArrowLeft,
   X, 
   CheckCircle,
-  TrendingUp,
-  ExternalLink,
-  Lock,
-  Coins,
-  ChevronRight,
-  TrendingDown,
-  Info
+  Plus,
+  Home as HomeIcon
 } from "lucide-react";
 
 // Deployed Smart Contract Addresses on TeQoin Testnet
@@ -142,7 +137,7 @@ export default function Home() {
   const { wallets } = useWallets();
   const activeWallet = wallets[0];
 
-  // Flaunch Page Navigation Structure: "home" | "launch" | "details"
+  // Navigation views: "home" | "launch" | "details"
   const [currentView, setCurrentView] = useState<"home" | "launch" | "details">("home");
   
   const [tokens, setTokens] = useState<any[]>([]);
@@ -371,49 +366,16 @@ export default function Home() {
   );
 
   return (
-    <div className="flex flex-col flex-1 pb-10 select-none relative bg-background min-h-screen">
-      {/* GLOW DECORATIONS (Premium Flaunch Theme) */}
+    <div className="flex flex-col flex-1 pb-24 select-none relative bg-background min-h-screen">
+      {/* GLOW DECORATIONS */}
       <div className="absolute top-0 left-1/4 w-72 h-72 bg-primary/10 rounded-full blur-[120px] pointer-events-none z-0" />
       <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-purple-600/10 rounded-full blur-[120px] pointer-events-none z-0" />
 
-      {/* HEADER (Frosted Glassmorphism) */}
+      {/* HEADER (Frosted Glassmorphism - Pure Logo) */}
       <header className="px-5 py-4 flex justify-between items-center bg-cardBg/80 backdrop-blur-md border-b border-cardBorder sticky top-0 z-40">
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => setCurrentView("home")}>
           <span className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-purple-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-primary/20">F</span>
           <span className="text-xl font-black tracking-tight text-white">Flaunch<span className="text-primary">TQ</span></span>
-        </div>
-        
-        <div className="flex items-center gap-2.5">
-          {/* Header Action Button - Fits seamlessly on mobile */}
-          {currentView === "home" && (
-            <button 
-              onClick={() => setCurrentView("launch")}
-              className="px-3.5 py-1.5 rounded-full bg-primary hover:bg-opacity-95 text-white font-bold text-xs flex items-center gap-1 shadow-md shadow-primary/10 transition-all"
-            >
-              <PlusCircle size={13} />
-              Launch
-            </button>
-          )}
-
-          {!ready ? (
-            <div className="w-20 h-8 bg-cardBorder animate-pulse rounded-full" />
-          ) : authenticated ? (
-            <button 
-              onClick={() => logout()}
-              className="px-3 py-1.5 rounded-full bg-cardBorder hover:bg-opacity-80 text-white font-bold text-[11px] flex items-center gap-1.5 transition-all border border-cardBorder shadow-sm"
-            >
-              <Wallet size={12} className="text-primary" />
-              {activeWallet?.address ? `${activeWallet.address.slice(0, 4)}...${activeWallet.address.slice(-3)}` : "Profile"}
-            </button>
-          ) : (
-            <button 
-              onClick={() => login()}
-              className="px-4 py-1.5 rounded-full bg-cardBorder hover:bg-opacity-90 active:scale-[0.97] text-white font-extrabold text-[11px] flex items-center gap-1.5 transition-all shadow-sm"
-            >
-              <Wallet size={12} />
-              Connect
-            </button>
-          )}
         </div>
       </header>
 
@@ -727,6 +689,61 @@ export default function Home() {
           </div>
         )}
       </main>
+
+      {/* STICKY BOTTOM NAVBAR (Flaunch.gg Mobile Layout Copy) */}
+      <nav className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-cardBg/90 backdrop-blur-md border-t border-cardBorder pt-3.5 pb-[env(safe-area-inset-bottom,16px)] px-6 flex justify-between items-center z-50 shadow-2xl">
+        <div className="flex items-center gap-6">
+          <button 
+            onClick={() => setCurrentView("home")}
+            className={`p-2 rounded-xl transition-all ${currentView === "home" ? "text-primary scale-105" : "text-gray-400 hover:text-white"}`}
+          >
+            <HomeIcon size={22} className={currentView === "home" ? "fill-current" : ""} />
+          </button>
+          
+          <button 
+            onClick={() => {
+              setCurrentView("home");
+              setTimeout(() => {
+                const input = document.querySelector('input[type="text"]');
+                if (input) (input as HTMLInputElement).focus();
+              }, 100);
+            }}
+            className="p-2 rounded-xl text-gray-400 hover:text-white transition-all"
+          >
+            <Search size={22} />
+          </button>
+
+          <button 
+            onClick={() => setCurrentView("launch")}
+            className={`p-2 rounded-xl transition-all ${currentView === "launch" ? "text-primary scale-105" : "text-gray-400 hover:text-white"}`}
+          >
+            <Plus size={24} className="stroke-[2.5px]" />
+          </button>
+        </div>
+
+        {/* Connect Button inside the Navbar - Match Flaunch.gg perfectly */}
+        <div>
+          {!ready ? (
+            <div className="w-24 h-9 bg-cardBorder animate-pulse rounded-full" />
+          ) : authenticated ? (
+            <button 
+              onClick={() => logout()}
+              className="px-4 py-2 rounded-full bg-cardBorder hover:bg-opacity-80 text-white font-extrabold text-xs flex items-center gap-1.5 transition-all border border-cardBorder"
+            >
+              <Wallet size={12} className="text-primary" />
+              {activeWallet?.address ? `${activeWallet.address.slice(0, 4)}...${activeWallet.address.slice(-3)}` : "Profile"}
+            </button>
+          ) : (
+            <button 
+              onClick={() => login()}
+              className="px-5 py-2.5 rounded-full bg-white text-black hover:bg-neutral-200 active:scale-[0.97] font-black text-xs flex items-center gap-1.5 transition-all shadow-md"
+            >
+              <Wallet size={12} />
+              Connect wallet
+            </button>
+          )}
+        </div>
+      </nav>
     </div>
   );
 }
