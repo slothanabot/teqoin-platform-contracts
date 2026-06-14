@@ -90,7 +90,9 @@ contract TokenFactory {
     function setLaunchFee(uint256 _fee) external onlyOwner { launchFee = _fee; }
 
     function withdrawFees() external onlyOwner {
-        require(address(this).balance > 0, "No fees");
-        payable(owner).transfer(address(this).balance);
+        uint256 balance = address(this).balance;
+        require(balance > 0, "No fees");
+        (bool success, ) = payable(owner).call{value: balance}("");
+        require(success, "Withdraw failed");
     }
 }
