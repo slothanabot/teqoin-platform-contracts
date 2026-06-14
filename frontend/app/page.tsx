@@ -14,7 +14,8 @@ import {
   X, 
   CheckCircle,
   Plus,
-  Home as HomeIcon
+  Home as HomeIcon,
+  Lock
 } from "lucide-react";
 
 // Deployed Smart Contract Addresses on TeQoin Testnet
