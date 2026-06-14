@@ -153,6 +153,23 @@ export default function Home() {
   const [description, setDescription] = useState("");
   const [isLaunching, setIsLaunching] = useState(false);
 
+  // Social & Share Earnings States
+  const [socialLinksExpanded, setSocialLinksExpanded] = useState(false);
+  const [website, setWebsite] = useState("");
+  const [twitter, setTwitter] = useState("");
+  const [telegram, setTelegram] = useState("");
+  const [discord, setDiscord] = useState("");
+  const [farcaster, setFarcaster] = useState("");
+
+  const [showShareEarnings, setShowShareEarnings] = useState(false);
+  const [earningsReceivers, setEarningsReceivers] = useState<any[]>([
+    { address: "@theovertheraa", percent: 100, type: "twitter" }
+  ]);
+  const [newReceiverAddress, setNewReceiverAddress] = useState("");
+  const [newReceiverPercent, setNewReceiverPercent] = useState("10");
+  const [newReceiverType, setNewReceiverType] = useState<"wallet" | "email" | "twitter" | "farcaster">("wallet");
+  const [showAddMember, setShowAddMember] = useState(false);
+
   // Form State - Swap
   const [selectedToken, setSelectedToken] = useState<any>(null);
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
@@ -547,77 +564,161 @@ export default function Home() {
         )}
 
         {/* VIEW 2: LAUNCH TOKEN FORM */}
+        {/* VIEW 2: LAUNCH TOKEN FORM (Flaunch.gg Create Replica) */}
         {currentView === "launch" && (
-          <div className="space-y-4">
+          <div className="space-y-4 pb-12">
             <button 
               onClick={() => setCurrentView("home")}
-              className="flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-white transition-all pl-1"
+              className="flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-white transition-all pl-1 mb-2"
             >
               <ArrowLeft size={14} />
               Back to Browse
             </button>
 
-            <h2 className="text-lg font-black text-white flex items-center gap-2 mb-2">
-              <PlusCircle className="text-primary" size={20} />
-              Launch New Coin
-            </h2>
+            {/* 1. Earnings Banner */}
+            <div className="bg-[#151522] border border-[#2E284C] rounded-2xl p-4 flex items-center gap-3 shadow-md">
+              <div className="w-9 h-9 rounded-xl bg-[#2D224C] flex items-center justify-center text-[#A78BFA]">
+                <Coins size={18} />
+              </div>
+              <div className="text-xs font-bold text-gray-200">Trading this coin will generate earnings</div>
+            </div>
 
-            <div className="bg-cardBg border border-cardBorder rounded-3xl p-5 space-y-4 shadow-xl">
-              <div>
-                <label className="text-xs font-bold text-gray-400 uppercase">Token Name</label>
+            {/* Main Form Fields */}
+            <div className="space-y-4 pt-1">
+              
+              {/* 2. Dashed Upload Box */}
+              <div className="flex justify-center py-3">
+                <div 
+                  onClick={() => {
+                    const url = prompt("Enter Image URL for your Token logo:");
+                    if (url) setImageUrl(url);
+                  }}
+                  className="w-32 h-32 rounded-3xl border-2 border-dashed border-cardBorder bg-cardBg hover:border-primary/50 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all group"
+                >
+                  {imageUrl ? (
+                    <img src={imageUrl} alt="Token preview" className="w-full h-full rounded-3xl object-cover" />
+                  ) : (
+                    <>
+                      <div className="w-10 h-10 rounded-full bg-background flex items-center justify-center text-gray-400 group-hover:text-white transition-all">
+                        <PlusCircle size={20} />
+                      </div>
+                      <span className="text-[11px] font-bold text-gray-400 group-hover:text-white transition-all">Upload</span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Name */}
+              <div className="space-y-1">
                 <input 
                   type="text" 
-                  placeholder="e.g. TeQoin Shiba"
+                  placeholder="Name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full mt-1.5 bg-background border border-cardBorder rounded-2xl py-3 px-4 text-sm text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
+                  className="w-full bg-cardBg border border-cardBorder rounded-2xl py-3.5 px-4 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary transition-all"
                 />
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-gray-400 uppercase">Token Symbol</label>
+              {/* Ticker */}
+              <div className="space-y-1">
                 <input 
                   type="text" 
-                  placeholder="e.g. TSHIB"
+                  placeholder="Ticker"
                   value={symbol}
                   onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-                  className="w-full mt-1.5 bg-background border border-cardBorder rounded-2xl py-3 px-4 text-sm text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
+                  className="w-full bg-cardBg border border-cardBorder rounded-2xl py-3.5 px-4 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary transition-all"
                 />
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-gray-400 uppercase">Total Supply</label>
-                <input 
-                  type="number" 
-                  placeholder="e.g. 1000000000"
-                  value={supply}
-                  onChange={(e) => setSupply(e.target.value)}
-                  className="w-full mt-1.5 bg-background border border-cardBorder rounded-2xl py-3 px-4 text-sm text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-gray-400 uppercase">Logo URL (Optional)</label>
-                <input 
-                  type="text" 
-                  placeholder="https://..."
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  className="w-full mt-1.5 bg-background border border-cardBorder rounded-2xl py-3 px-4 text-sm text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-gray-400 uppercase">Description</label>
+              {/* Description */}
+              <div className="space-y-1">
                 <textarea 
-                  placeholder="Tell us about this token..."
+                  placeholder="Description (optional)"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
-                  className="w-full mt-1.5 bg-background border border-cardBorder rounded-2xl py-3 px-4 text-sm text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all resize-none"
+                  className="w-full bg-cardBg border border-cardBorder rounded-2xl py-3.5 px-4 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary transition-all resize-none"
                 />
               </div>
 
+              {/* 3. Share the Earnings Row */}
+              <div 
+                onClick={() => setShowShareEarnings(true)}
+                className="bg-cardBg border border-cardBorder hover:border-primary/40 rounded-2xl p-4 flex justify-between items-center cursor-pointer transition-all shadow-md active:scale-[0.99]"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center text-[#A78BFA]">
+                    <Coins size={16} />
+                  </div>
+                  <div>
+                    <div className="text-xs font-black text-white">Share the earnings</div>
+                    <div className="text-[10px] text-gray-400 mt-0.5">{earningsReceivers.length} receiver{earningsReceivers.length > 1 ? 's' : ''}</div>
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-gray-500" />
+              </div>
+
+              {/* 4. Collapsible Social Links Accordion */}
+              <div className="border border-cardBorder rounded-2xl overflow-hidden">
+                <button 
+                  onClick={() => setSocialLinksExpanded(!socialLinksExpanded)}
+                  className="w-full bg-cardBg px-4 py-3.5 flex justify-between items-center text-xs font-extrabold text-gray-300 hover:text-white transition-all"
+                >
+                  <span>Social links (optional)</span>
+                  <ChevronRight size={14} className={`transform transition-transform ${socialLinksExpanded ? "rotate-90" : ""}`} />
+                </button>
+                {socialLinksExpanded && (
+                  <div className="bg-[#12121A]/40 p-4 border-t border-cardBorder space-y-3">
+                    <div>
+                      <input 
+                        type="text" 
+                        placeholder="https://yoursite.com"
+                        value={website}
+                        onChange={(e) => setWebsite(e.target.value)}
+                        className="w-full bg-cardBg border border-cardBorder rounded-xl py-2.5 px-4 text-xs text-white placeholder-gray-600 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <input 
+                        type="text" 
+                        placeholder="x.com/handle"
+                        value={twitter}
+                        onChange={(e) => setTwitter(e.target.value)}
+                        className="w-full bg-cardBg border border-cardBorder rounded-xl py-2.5 px-4 text-xs text-white placeholder-gray-600 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <input 
+                        type="text" 
+                        placeholder="t.me/group"
+                        value={telegram}
+                        onChange={(e) => setTelegram(e.target.value)}
+                        className="w-full bg-cardBg border border-cardBorder rounded-xl py-2.5 px-4 text-xs text-white placeholder-gray-600 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <input 
+                        type="text" 
+                        placeholder="discord.gg/invite"
+                        value={discord}
+                        onChange={(e) => setDiscord(e.target.value)}
+                        className="w-full bg-cardBg border border-cardBorder rounded-xl py-2.5 px-4 text-xs text-white placeholder-gray-600 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <input 
+                        type="text" 
+                        placeholder="farcaster.xyz/username"
+                        value={farcaster}
+                        onChange={(e) => setFarcaster(e.target.value)}
+                        className="w-full bg-cardBg border border-cardBorder rounded-xl py-2.5 px-4 text-xs text-white placeholder-gray-600 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Launch Action */}
               <button 
                 onClick={handleLaunch}
                 disabled={isLaunching || !authenticated}
@@ -636,11 +737,185 @@ export default function Home() {
                 ) : (
                   <>
                     <PlusCircle size={16} />
-                    Launch Token (8 Wei Gas)
+                    Launch
                   </>
                 )}
               </button>
             </div>
+
+            {/* 5. INTERACTIVE SHARE EARNINGS BOTTOM SHEET */}
+            {showShareEarnings && (
+              <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end justify-center">
+                <div className="w-full max-w-md bg-[#0F0F16] border-t border-cardBorder rounded-t-[32px] p-5 space-y-4 shadow-2xl relative animate-slide-up pb-[env(safe-area-inset-bottom,24px)]">
+                  {/* Drag Indicator handle */}
+                  <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-1"></div>
+                  
+                  <div className="flex justify-between items-center pb-2">
+                    <h3 className="text-sm font-black text-white">Share Earnings</h3>
+                    <button 
+                      onClick={() => { setShowShareEarnings(false); setShowAddMember(false); }}
+                      className="p-1 rounded-full bg-cardBorder hover:bg-neutral-800 text-gray-400"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+
+                  {/* Active Receivers List */}
+                  <div className="space-y-3">
+                    {earningsReceivers.map((rec: any, idx: number) => (
+                      <div key={idx} className="flex justify-between items-center bg-cardBg border border-cardBorder p-3.5 rounded-2xl">
+                        <div className="flex items-center gap-3">
+                          <img 
+                            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100" 
+                            alt="avatar" 
+                            className="w-9 h-9 rounded-full object-cover border border-cardBorder"
+                          />
+                          <div>
+                            <div className="text-xs font-black text-white">{rec.address}</div>
+                            <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{rec.type}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-black text-primary">{rec.percent}%</span>
+                          {earningsReceivers.length > 1 && (
+                            <button 
+                              onClick={() => {
+                                const list = [...earningsReceivers];
+                                list.splice(idx, 1);
+                                setEarningsReceivers(list);
+                              }}
+                              className="text-red-500 text-xs font-bold"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Add Member Form (Inline Bottom Sheet) */}
+                  {showAddMember ? (
+                    <div className="bg-[#151522] border border-cardBorder rounded-2xl p-4 space-y-4">
+                      <div className="text-xs font-black text-white">Add member</div>
+                      
+                      {/* Social/Chain Tabs */}
+                      <div className="flex gap-1 bg-background p-1 rounded-xl border border-cardBorder text-[10px] font-black text-gray-400">
+                        <button 
+                          onClick={() => setNewReceiverType("wallet")}
+                          className={`flex-1 py-1.5 rounded-lg ${newReceiverType === "wallet" ? "bg-cardBorder text-white" : ""}`}
+                        >
+                          CA
+                        </button>
+                        <button 
+                          onClick={() => setNewReceiverType("email")}
+                          className={`flex-1 py-1.5 rounded-lg ${newReceiverType === "email" ? "bg-cardBorder text-white" : ""}`}
+                        >
+                          📧
+                        </button>
+                        <button 
+                          onClick={() => setNewReceiverType("twitter")}
+                          className={`flex-1 py-1.5 rounded-lg ${newReceiverType === "twitter" ? "bg-cardBorder text-white" : ""}`}
+                        >
+                          𝕏
+                        </button>
+                        <button 
+                          onClick={() => setNewReceiverType("farcaster")}
+                          className={`flex-1 py-1.5 rounded-lg ${newReceiverType === "farcaster" ? "bg-cardBorder text-white" : ""}`}
+                        >
+                          ⚿
+                        </button>
+                      </div>
+
+                      {/* Input handle */}
+                      <input 
+                        type="text" 
+                        placeholder={
+                          newReceiverType === "wallet" ? "Wallet address or ENS name" :
+                          newReceiverType === "email" ? "Email address" :
+                          newReceiverType === "twitter" ? "Twitter/X handle" : "Farcaster username"
+                        }
+                        value={newReceiverAddress}
+                        onChange={(e) => setNewReceiverAddress(e.target.value)}
+                        className="w-full bg-background border border-cardBorder rounded-xl py-2.5 px-4 text-xs text-white focus:outline-none"
+                      />
+
+                      {/* Percent Select Panel */}
+                      <div className="bg-background border border-cardBorder rounded-xl p-3.5 space-y-2">
+                        <div className="flex justify-between items-center text-xs font-black text-gray-400">
+                          <span>SPLIT PERCENT</span>
+                          <span className="text-primary font-black">{newReceiverPercent}%</span>
+                        </div>
+                        <div className="flex justify-between gap-1 pt-1">
+                          {["1", "10", "25", "50", "100"].map((pct) => (
+                            <button 
+                              key={pct}
+                              onClick={() => setNewReceiverPercent(pct)}
+                              className={`flex-1 py-1.5 rounded-lg text-[10px] font-black border transition-all ${newReceiverPercent === pct ? "bg-primary border-primary text-white" : "bg-cardBg border-cardBorder text-gray-400"}`}
+                            >
+                              {pct}%
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Form Actions */}
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => {
+                            if (!newReceiverAddress) return;
+                            
+                            // Adjust other splits to accommodate new member
+                            const newPct = parseInt(newReceiverPercent);
+                            const remaining = 100 - newPct;
+                            const count = earningsReceivers.length;
+                            
+                            const updated = earningsReceivers.map(r => ({
+                              ...r,
+                              percent: Math.floor((r.percent / 100) * remaining)
+                            }));
+
+                            setEarningsReceivers([
+                              ...updated,
+                              { address: newReceiverAddress, percent: newPct, type: newReceiverType }
+                            ]);
+
+                            setNewReceiverAddress("");
+                            setShowAddMember(false);
+                          }}
+                          className="flex-1 bg-white hover:bg-neutral-200 text-black py-2.5 rounded-xl text-xs font-black"
+                        >
+                          Add
+                        </button>
+                        <button 
+                          onClick={() => setShowAddMember(false)}
+                          className="flex-1 bg-cardBorder text-white py-2.5 rounded-xl text-xs font-black"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <button 
+                        onClick={() => setShowAddMember(true)}
+                        className="w-full bg-[#1B1B26] hover:bg-opacity-80 text-white font-extrabold py-3 rounded-2xl text-xs flex items-center justify-center gap-1.5 transition-all border border-cardBorder shadow-sm"
+                      >
+                        <Plus size={14} />
+                        Add another member
+                      </button>
+                      
+                      <button 
+                        onClick={() => setShowShareEarnings(false)}
+                        className="w-full bg-primary hover:bg-opacity-95 text-white font-black py-3 rounded-2xl text-xs transition-all shadow-md shadow-primary/10 mt-1"
+                      >
+                        Confirm splits
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
