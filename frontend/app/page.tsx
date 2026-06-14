@@ -171,7 +171,7 @@ export default function Home() {
 
   const [showShareEarnings, setShowShareEarnings] = useState(false);
   const [earningsReceivers, setEarningsReceivers] = useState<any[]>([
-    { address: "@theovertheraa (Creator)", percent: 80, type: "twitter" },
+    { address: "Creator", percent: 80, type: "wallet" },
     { address: "Platform Treasury", percent: 20, type: "wallet" }
   ]);
   const [newReceiverAddress, setNewReceiverAddress] = useState("");
@@ -204,6 +204,34 @@ export default function Home() {
       }
     }
   }, [selectedToken, currentView]);
+  // Helper to dynamically get user identity (Google, Twitter, Email, or Wallet) from Privy
+  const getActiveUserIdentity = () => {
+    if (!ready || !authenticated || !user) {
+      return { name: "Creator", type: "wallet" };
+    }
+    if (user.twitter?.username) {
+      return { name: `@${user.twitter.username}`, type: "twitter" };
+    }
+    if (user.google?.email) {
+      return { name: user.google.email, type: "email" };
+    }
+    if (user.email?.address) {
+      return { name: user.email.address, type: "email" };
+    }
+    if (activeWallet?.address) {
+      return { name: `${activeWallet.address.slice(0, 6)}...${activeWallet.address.slice(-4)}`, type: "wallet" };
+    }
+    return { name: "Creator", type: "wallet" };
+  };
+
+  // Sync creator split dynamically with their logged-in Privy account
+  useEffect(() => {
+    const identity = getActiveUserIdentity();
+    setEarningsReceivers([
+      { address: `${identity.name} (Creator)`, percent: 80, type: identity.type },
+      { address: "Platform Treasury", percent: 20, type: "wallet" }
+    ]);
+  }, [authenticated, user, activeWallet, ready]);
 
   // Profile On-Chain Fetching States
   const [userPositions, setUserPositions] = useState<any[]>([]);
@@ -896,9 +924,12 @@ export default function Home() {
                       <div key={idx} className="flex justify-between items-center bg-cardBg border border-cardBorder p-3.5 rounded-2xl">
                         <div className="flex items-center gap-3">
                           <img 
-                            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100" 
+                            src={idx === 0 
+                              ? ((user as any)?.google?.picture || (user as any)?.twitter?.profilePictureUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100")
+                              : "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"
+                            } 
                             alt="avatar" 
-                            className="w-9 h-9 rounded-full object-cover border border-cardBorder"
+                            className="w-9 h-9 rounded-full object-cover border border-cardBorder shadow-sm"
                           />
                           <div>
                             <div className="text-xs font-black text-white">{rec.address}</div>
@@ -1298,10 +1329,8 @@ export default function Home() {
                 </button>
                 <button 
                   onClick={() => {
-                    if (confirm("Disconnect wallet?")) {
-                      logout();
-                      setShowProfile(false);
-                    }
+                    logout();
+                    setShowProfile(false);
                   }} 
                   title="Disconnect"
                   className="w-9 h-9 rounded-full bg-cardBg border border-cardBorder flex items-center justify-center text-red-400 hover:text-red-500 transition-all shadow-sm"
