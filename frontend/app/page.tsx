@@ -167,7 +167,8 @@ export default function Home() {
 
   const [showShareEarnings, setShowShareEarnings] = useState(false);
   const [earningsReceivers, setEarningsReceivers] = useState<any[]>([
-    { address: "@theovertheraa", percent: 100, type: "twitter" }
+    { address: "@theovertheraa (Creator)", percent: 80, type: "twitter" },
+    { address: "Platform Treasury", percent: 20, type: "wallet" }
   ]);
   const [newReceiverAddress, setNewReceiverAddress] = useState("");
   const [newReceiverPercent, setNewReceiverPercent] = useState("10");
@@ -620,23 +621,36 @@ export default function Home() {
             {/* Main Form Fields */}
             <div className="space-y-4 pt-1">
               
-              {/* 2. Dashed Upload Box */}
-              <div className="flex justify-center py-3">
-                <div 
-                  onClick={() => {
-                    const url = prompt("Enter Image URL for your Token logo:");
-                    if (url) setImageUrl(url);
+              {/* 2. Dashed Upload Box with Real Photo Gallery Selector */}
+              <div className="flex flex-col items-center justify-center py-3">
+                <input 
+                  type="file" 
+                  id="tokenImageFileInput" 
+                  accept="image/*" 
+                  className="hidden" 
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setImageUrl(reader.result as string);
+                      };
+                      reader.readAsDataURL(file);
+                    }
                   }}
-                  className="w-32 h-32 rounded-3xl border-2 border-dashed border-cardBorder bg-cardBg hover:border-primary/50 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all group"
+                />
+                <div 
+                  onClick={() => document.getElementById('tokenImageFileInput')?.click()}
+                  className="w-32 h-32 rounded-3xl border-2 border-dashed border-cardBorder bg-cardBg hover:border-primary/50 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all group overflow-hidden shadow-md"
                 >
                   {imageUrl ? (
-                    <img src={imageUrl} alt="Token preview" className="w-full h-full rounded-3xl object-cover" />
+                    <img src={imageUrl} alt="Token preview" className="w-full h-full object-cover" />
                   ) : (
                     <>
                       <div className="w-10 h-10 rounded-full bg-background flex items-center justify-center text-gray-400 group-hover:text-white transition-all">
                         <PlusCircle size={20} />
                       </div>
-                      <span className="text-[11px] font-bold text-gray-400 group-hover:text-white transition-all">Upload</span>
+                      <span className="text-[11px] font-bold text-gray-400 group-hover:text-white transition-all">Upload Photo</span>
                     </>
                   )}
                 </div>
