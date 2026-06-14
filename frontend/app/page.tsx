@@ -22,7 +22,8 @@ import {
   Coins,
   Lock,
   ChevronRight,
-  Settings
+  Settings,
+  ExternalLink
 } from "lucide-react";
 
 // Deployed Smart Contract Addresses on TeQoin Testnet
