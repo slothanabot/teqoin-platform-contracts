@@ -137,7 +137,7 @@ const ERC20_ABI = [
 ];
 
 export default function Home() {
-  const { login, logout, authenticated, ready } = usePrivy();
+  const { login, logout, authenticated, ready, user } = usePrivy();
   const { wallets } = useWallets();
   const activeWallet = wallets[0];
 
@@ -793,7 +793,7 @@ export default function Home() {
 
             {/* 5. INTERACTIVE SHARE EARNINGS BOTTOM SHEET */}
             {showShareEarnings && (
-              <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end justify-center">
+              <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end justify-center">
                 <div className="w-full max-w-md bg-[#0F0F16] border-t border-cardBorder rounded-t-[32px] p-5 space-y-4 shadow-2xl relative animate-slide-up pb-[env(safe-area-inset-bottom,24px)]">
                   {/* Drag Indicator handle */}
                   <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-1"></div>
@@ -1123,7 +1123,7 @@ export default function Home() {
       </main>
 
       {/* 5. STICKY BOTTOM NAVBAR (Flaunch.gg Mobile Layout Copy) */}
-      <nav className="fixed bottom-5 left-1/2 transform -translate-x-1/2 w-[calc(100%-24px)] max-w-[424px] bg-cardBg/95 backdrop-blur-md border border-cardBorder/80 py-3.5 px-5 flex justify-between items-center z-50 shadow-2xl rounded-[24px]">
+       <nav className="fixed bottom-5 left-1/2 transform -translate-x-1/2 w-[calc(100%-24px)] max-w-[424px] h-[58px] bg-cardBg/95 backdrop-blur-md border border-cardBorder/80 px-5 flex justify-between items-center z-50 shadow-2xl rounded-[24px]">
         <div className="flex items-center gap-6">
           <button 
             onClick={() => setCurrentView("home")}
@@ -1153,11 +1153,18 @@ export default function Home() {
             <div className="w-24 h-9 bg-cardBorder animate-pulse rounded-full" />
           ) : authenticated ? (
             <button 
-              onClick={() => logout()}
-              className="px-4 py-2 rounded-full bg-cardBorder hover:bg-opacity-80 text-white font-extrabold text-[11px] flex items-center gap-1.5 transition-all border border-cardBorder"
+              onClick={() => {
+                if (confirm("Are you sure you want to disconnect?")) {
+                  logout();
+                }
+              }}
+              className="w-10 h-10 rounded-full border border-primary/50 overflow-hidden focus:outline-none hover:border-primary transition-all active:scale-95 flex items-center justify-center shadow-md bg-neutral-900"
             >
-              <Wallet size={12} className="text-primary" />
-              {activeWallet?.address ? `${activeWallet.address.slice(0, 4)}...${activeWallet.address.slice(-3)}` : "Profile"}
+              <img 
+                src={user?.google?.picture || user?.twitter?.profilePictureUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"} 
+                alt="Profile" 
+                className="w-full h-full object-cover"
+              />
             </button>
           ) : (
             <button 
@@ -1173,7 +1180,7 @@ export default function Home() {
 
       {/* 6. FLAUNCH-STYLE SEARCH BOTTOM DRAWER */}
       {showSearch && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end justify-center">
+         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end justify-center">
           <div className="w-full max-w-md bg-[#0F0F16] border-t border-cardBorder rounded-t-[32px] p-5 space-y-4 shadow-2xl relative animate-slide-up pb-[env(safe-area-inset-bottom,24px)]">
             {/* Drag handle */}
             <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-1"></div>
