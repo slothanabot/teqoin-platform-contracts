@@ -1,38 +1,43 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { 
-  useAccount, 
-  useConnect, 
-  useDisconnect, 
-  useReadContract, 
-  useWriteContract,
-  useWaitForTransactionReceipt
-} from "wagmi";
-import { injected } from "wagmi/connectors";
-import { parseEther, formatEther, parseUnits, formatUnits } from "viem";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { createPublicClient, createWalletClient, http, custom, parseEther, formatEther, parseUnits, formatUnits } from "viem";
 import { 
   Flame, 
   PlusCircle, 
-  TrendingUp, 
   Wallet, 
-  Coins, 
   RefreshCw, 
   Search, 
   ArrowDownUp, 
   X, 
   CheckCircle,
-  HelpCircle,
-  TrendingDown,
-  ChevronRight
+  TrendingUp,
+  ExternalLink,
+  Lock,
+  Coins
 } from "lucide-react";
 
-// Contract Addresses we deployed
+// Deployed Smart Contract Addresses on TeQoin Testnet
 const FACTORY_ADDRESS = "0x1FB4F3e6e7d57aE31F5495973CA9298af383d18C";
 const ROUTER_ADDRESS = "0xFfa2Af532BF7225af501eA0420b28B2B7698c0b6";
 const WETH_ADDRESS = "0xbed97c4c145313c1738921a1fc4CC49Fa3Ddf518";
 
-// Basic ABIs for contract interactions
+// Custom Chain definition
+const teqoinTestnet = {
+  id: 420377,
+  name: "TeQoin Testnet",
+  nativeCurrency: { name: "Ethereum", symbol: "ETH", decimals: 18 },
+  rpcUrls: { default: { http: ["https://rpc-testnet.teqoin.io"] } },
+};
+
+// Viem Public Client for Real-time Reading
+const publicClient = createPublicClient({
+  chain: teqoinTestnet,
+  transport: http(),
+});
+
+// ABIs
 const FACTORY_ABI = [
   {
     name: "getAllTokens",
@@ -129,116 +134,236 @@ const ERC20_ABI = [
 ];
 
 export default function Home() {
-  const { address, isConnected } = useAccount();
-  const { connect } = useConnect();
-  const { disconnect } = useDisconnect();
+  const { login, logout, authenticated, ready, user } = usePrivy();
+  const { wallets } = useWallets();
+  const activeWallet = wallets[0];
 
-  // Navigation state
+  // Navigation & States
   const [activeTab, setActiveTab] = useState<"home" | "launch" | "swap">("home");
-
-  // Search filter
+  const [tokens, setTokens] = useState<any[]>([]);
+  const [isLoadingTokens, setIsLoadingTokens] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Token creation form state
+  // Form State - Launch
   const [name, setName] = useState("");
   const [symbol, setSymbol] = useState("");
-  const [supply, setSupply] = useState("1000000000"); // 1 Billion standard
+  const [supply, setSupply] = useState("1000000000"); // 1 Billion
   const [imageUrl, setImageUrl] = useState("");
   const [description, setDescription] = useState("");
+  const [isLaunching, setIsLaunching] = useState(false);
 
-  // Swap form state
+  // Form State - Swap
   const [selectedToken, setSelectedToken] = useState<any>(null);
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
   const [swapAmount, setSwapAmount] = useState("");
-  const [swapOutput, setSwapOutput] = useState("");
+  const [swapOutput, setSwapOutput] = useState("0.00");
+  const [isSwapping, setIsSwapping] = useState(false);
+  const [userTokenBalance, setUserUserTokenBalance] = useState("0.00");
+  const [userEthBalance, setUserEthBalance] = useState("0.00");
 
-  // Fetch all tokens from factory
-  const { data: rawTokens, refetch: refetchTokens, isLoading: isLoadingTokens } = useReadContract({
-    address: FACTORY_ADDRESS,
-    abi: FACTORY_ABI,
-    functionName: "getAllTokens",
-  });
-
-  const tokens = Array.isArray(rawTokens) ? rawTokens : [];
-
-  // Write contract states
-  const { writeContract, data: txHash } = useWriteContract();
-
-  // Launch Token transaction confirmation
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
-    hash: txHash,
-  });
+  // Fetch Real Token List from Contract
+  const fetchTokens = async () => {
+    try {
+      setIsLoadingTokens(true);
+      const data: any = await publicClient.readContract({
+        address: FACTORY_ADDRESS,
+        abi: FACTORY_ABI,
+        functionName: "getAllTokens",
+      });
+      if (Array.isArray(data)) {
+        setTokens(data);
+      }
+    } catch (err) {
+      console.error("Error fetching tokens:", err);
+    } finally {
+      setIsLoadingTokens(false);
+    }
+  };
 
   useEffect(() => {
-    if (isConfirmed) {
-      refetchTokens();
-      // Reset form
+    fetchTokens();
+  }, []);
+
+  // Fetch Live Swap Quote
+  useEffect(() => {
+    const fetchQuote = async () => {
+      if (!selectedToken || !swapAmount || parseFloat(swapAmount) <= 0) {
+        setSwapOutput("0.00");
+        return;
+      }
+      try {
+        const amountIn = swapType === "buy" 
+          ? parseEther(swapAmount)
+          : parseUnits(swapAmount, 18);
+
+        const path = swapType === "buy"
+          ? [WETH_ADDRESS, selectedToken.tokenAddress]
+          : [selectedToken.tokenAddress, WETH_ADDRESS];
+
+        const amounts: any = await publicClient.readContract({
+          address: ROUTER_ADDRESS,
+          abi: ROUTER_ABI,
+          functionName: "getAmountsOut",
+          args: [amountIn, path],
+        });
+
+        if (Array.isArray(amounts) && amounts.length > 1) {
+          const out = swapType === "buy"
+            ? formatUnits(amounts[1], 18)
+            : formatEther(amounts[1]);
+          setSwapOutput(parseFloat(out).toLocaleString("en-US", { maximumFractionDigits: 6 }));
+        }
+      } catch (err) {
+        setSwapOutput("0.00 (No Liquidity)");
+      }
+    };
+
+    const delayDebounce = setTimeout(() => {
+      fetchQuote();
+    }, 500);
+
+    return () => clearTimeout(delayDebounce);
+  }, [swapAmount, swapType, selectedToken]);
+
+  // Fetch Wallet Balances
+  useEffect(() => {
+    const fetchBalances = async () => {
+      if (!authenticated || !activeWallet || !selectedToken) return;
+      try {
+        const ethBal = await publicClient.getBalance({ address: activeWallet.address as `0x${string}` });
+        setUserEthBalance(formatEther(ethBal));
+
+        const tokenBal: any = await publicClient.readContract({
+          address: selectedToken.tokenAddress,
+          abi: ERC20_ABI,
+          functionName: "balanceOf",
+          args: [activeWallet.address],
+        });
+        setUserUserTokenBalance(formatUnits(tokenBal, 18));
+      } catch (err) {
+        console.error("Error fetching balances:", err);
+      }
+    };
+    fetchBalances();
+  }, [authenticated, activeWallet, selectedToken, activeTab, isSwapping]);
+
+  // Action: Launch Token
+  const handleLaunch = async () => {
+    if (!name || !symbol || !supply || !activeWallet) return;
+    try {
+      setIsLaunching(true);
+      // Switch network to TeQoin Testnet if needed
+      await activeWallet.switchChain(teqoinTestnet.id);
+
+      const provider = await activeWallet.getEthereumProvider();
+      const walletClient = createWalletClient({
+        account: activeWallet.address as `0x${string}`,
+        chain: teqoinTestnet,
+        transport: custom(provider),
+      });
+
+      const { request } = await publicClient.simulateContract({
+        account: activeWallet.address as `0x${string}`,
+        address: FACTORY_ADDRESS,
+        abi: FACTORY_ABI,
+        functionName: "launchToken",
+        args: [
+          name,
+          symbol,
+          BigInt(supply),
+          imageUrl || "https://placeholder.co/150",
+          description || "A custom community token launched on TeQoin L2."
+        ],
+      });
+
+      const hash = await walletClient.writeContract(request);
+      await publicClient.waitForTransactionReceipt({ hash });
+
+      alert("Token launched successfully! 🎉");
       setName("");
       setSymbol("");
       setImageUrl("");
       setDescription("");
-      alert("Token Berhasil diluncurkan! 🎉");
+      fetchTokens();
       setActiveTab("home");
-    }
-  }, [isConfirmed]);
-
-  // Handle Launch Token Submit
-  const handleLaunch = () => {
-    if (!name || !symbol || !supply) return;
-    writeContract({
-      address: FACTORY_ADDRESS,
-      abi: FACTORY_ABI,
-      functionName: "launchToken",
-      args: [
-        name,
-        symbol,
-        BigInt(supply),
-        imageUrl || "https://placeholder.co/150",
-        description || "No description provided."
-      ]
-    });
-  };
-
-  // Handle Swap / Trade
-  const handleSwap = () => {
-    if (!selectedToken || !swapAmount) return;
-    const path = swapType === "buy" 
-      ? [WETH_ADDRESS, selectedToken.tokenAddress]
-      : [selectedToken.tokenAddress, WETH_ADDRESS];
-
-    const deadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 20); // 20 minutes from now
-
-    if (swapType === "buy") {
-      writeContract({
-        address: ROUTER_ADDRESS,
-        abi: ROUTER_ABI,
-        functionName: "swapExactETHForTokens",
-        args: [
-          BigInt(0), // Min amount out (set to 0 for simplicity in testnet)
-          path,
-          address,
-          deadline
-        ],
-        value: parseEther(swapAmount)
-      });
-    } else {
-      // For selling, we would normally approve first, but for quick testnet MVP we proceed or remind
-      writeContract({
-        address: ROUTER_ADDRESS,
-        abi: ROUTER_ABI,
-        functionName: "swapExactTokensForETH",
-        args: [
-          parseUnits(swapAmount, 18),
-          BigInt(0),
-          path,
-          address,
-          deadline
-        ]
-      });
+    } catch (err: any) {
+      console.error(err);
+      alert("Deployment failed: " + err.message);
+    } finally {
+      setIsLaunching(false);
     }
   };
 
-  // Filtered tokens
+  // Action: Swap / Trade
+  const handleSwap = async () => {
+    if (!selectedToken || !swapAmount || !activeWallet) return;
+    try {
+      setIsSwapping(true);
+      await activeWallet.switchChain(teqoinTestnet.id);
+
+      const provider = await activeWallet.getEthereumProvider();
+      const walletClient = createWalletClient({
+        account: activeWallet.address as `0x${string}`,
+        chain: teqoinTestnet,
+        transport: custom(provider),
+      });
+
+      const path = swapType === "buy" 
+        ? [WETH_ADDRESS, selectedToken.tokenAddress]
+        : [selectedToken.tokenAddress, WETH_ADDRESS];
+
+      const deadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 20); // 20m
+
+      if (swapType === "buy") {
+        // Direct ETH Swap
+        const { request } = await publicClient.simulateContract({
+          account: activeWallet.address as `0x${string}`,
+          address: ROUTER_ADDRESS,
+          abi: ROUTER_ABI,
+          functionName: "swapExactETHForTokens",
+          args: [BigInt(0), path, activeWallet.address, deadline],
+          value: parseEther(swapAmount),
+        });
+
+        const hash = await walletClient.writeContract(request);
+        await publicClient.waitForTransactionReceipt({ hash });
+        alert("Swap completed successfully! 🚀");
+      } else {
+        // Approve first for selling
+        const amountIn = parseUnits(swapAmount, 18);
+        const { request: approveRequest } = await publicClient.simulateContract({
+          account: activeWallet.address as `0x${string}`,
+          address: selectedToken.tokenAddress,
+          abi: ERC20_ABI,
+          functionName: "approve",
+          args: [ROUTER_ADDRESS, amountIn],
+        });
+        const approveHash = await walletClient.writeContract(approveRequest);
+        await publicClient.waitForTransactionReceipt({ hash: approveHash });
+
+        // Sell
+        const { request: swapRequest } = await publicClient.simulateContract({
+          account: activeWallet.address as `0x${string}`,
+          address: ROUTER_ADDRESS,
+          abi: ROUTER_ABI,
+          functionName: "swapExactTokensForETH",
+          args: [amountIn, BigInt(0), path, activeWallet.address, deadline],
+        });
+        const swapHash = await walletClient.writeContract(swapRequest);
+        await publicClient.waitForTransactionReceipt({ hash: swapHash });
+        alert("Tokens sold successfully! 🚀");
+      }
+
+      setSwapAmount("");
+    } catch (err: any) {
+      console.error(err);
+      alert("Swap failed: " + err.message);
+    } finally {
+      setIsSwapping(false);
+    }
+  };
+
+  // Search Filter
   const filteredTokens = tokens.filter((t: any) => 
     t.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     t.symbol.toLowerCase().includes(searchQuery.toLowerCase())
@@ -247,38 +372,40 @@ export default function Home() {
   return (
     <div className="flex flex-col flex-1 pb-20 select-none">
       {/* HEADER */}
-      <header className="px-5 py-4 flex justify-between items-center bg-cardBg border-b border-cardBorder">
+      <header className="px-5 py-4 flex justify-between items-center bg-cardBg border-b border-cardBorder sticky top-0 z-40">
         <div className="flex items-center gap-2">
           <span className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-purple-600 flex items-center justify-center text-white font-extrabold text-lg">F</span>
           <span className="text-xl font-bold tracking-tight text-white">Flaunch<span className="text-primary">TQ</span></span>
         </div>
-        {isConnected ? (
+        {!ready ? (
+          <div className="w-24 h-8 bg-cardBorder animate-pulse rounded-full" />
+        ) : authenticated ? (
           <button 
-            onClick={() => disconnect()}
+            onClick={() => logout()}
             className="px-3 py-1.5 rounded-full bg-cardBorder hover:bg-opacity-80 text-white font-semibold text-xs flex items-center gap-1.5 transition-all"
           >
             <Wallet size={12} className="text-primary" />
-            {address?.slice(0, 5)}...{address?.slice(-4)}
+            {activeWallet?.address ? `${activeWallet.address.slice(0, 5)}...${activeWallet.address.slice(-4)}` : "Logged In"}
           </button>
         ) : (
           <button 
-            onClick={() => connect({ connector: injected() })}
-            className="px-4 py-1.5 rounded-full bg-primary hover:bg-opacity-90 text-white font-semibold text-xs flex items-center gap-1.5 transition-all"
+            onClick={() => login()}
+            className="px-4 py-1.5 rounded-full bg-primary hover:bg-opacity-90 text-white font-semibold text-xs flex items-center gap-1.5 transition-all shadow-lg"
           >
             <Wallet size={12} />
-            Connect Wallet
+            Connect
           </button>
         )}
       </header>
 
-      {/* STATS STRIP (Top) */}
-      <div className="px-5 py-3 flex gap-3 overflow-x-auto whitespace-nowrap scrollbar-none border-b border-cardBorder">
+      {/* STATS STRIP */}
+      <div className="px-5 py-3 flex gap-3 overflow-x-auto whitespace-nowrap scrollbar-none border-b border-cardBorder bg-background">
         <div className="bg-cardBg rounded-xl px-4 py-2 border border-cardBorder min-w-[120px] flex-1">
-          <div className="text-[10px] text-gray-400 uppercase font-bold">Total Launched</div>
-          <div className="text-lg font-bold text-white mt-0.5">{tokens.length} Coins</div>
+          <div className="text-[10px] text-gray-400 uppercase font-bold">Total Coins</div>
+          <div className="text-lg font-bold text-white mt-0.5">{tokens.length} Deployed</div>
         </div>
         <div className="bg-cardBg rounded-xl px-4 py-2 border border-cardBorder min-w-[120px] flex-1">
-          <div className="text-[10px] text-gray-400 uppercase font-bold">Gas Fee</div>
+          <div className="text-[10px] text-gray-400 uppercase font-bold">TeQoin Gas</div>
           <div className="text-lg font-bold text-green-400 mt-0.5">8 wei 🔥</div>
         </div>
       </div>
@@ -289,11 +416,10 @@ export default function Home() {
         {/* TAB 1: HOME (BROWSE TOKENS) */}
         {activeTab === "home" && (
           <div className="space-y-4">
-            {/* Search Bar */}
             <div className="relative">
               <input 
                 type="text" 
-                placeholder="Cari token, simbol, address..."
+                placeholder="Search tokens, symbols, addresses..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-cardBg border border-cardBorder rounded-2xl py-3 pl-10 pr-4 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary transition-all"
@@ -301,26 +427,25 @@ export default function Home() {
               <Search className="absolute left-3.5 top-3.5 text-gray-500" size={16} />
             </div>
 
-            {/* Token List */}
             <div className="space-y-3">
               <div className="flex items-center gap-1.5 text-xs text-gray-400 font-bold uppercase tracking-wider pl-1">
                 <Flame size={14} className="text-primary animate-pulse" />
-                Trending Coins
+                Live Coins on TeQoin
               </div>
 
               {isLoadingTokens ? (
-                <div className="flex justify-center items-center py-10">
+                <div className="flex justify-center items-center py-12">
                   <RefreshCw className="animate-spin text-primary" size={24} />
                 </div>
               ) : filteredTokens.length === 0 ? (
-                <div className="text-center py-10 text-gray-500 text-sm">
-                  Belum ada token diluncurkan. Jadi yang pertama! 🚀
+                <div className="text-center py-12 text-gray-500 text-sm bg-cardBg rounded-2xl border border-cardBorder p-6">
+                  No tokens deployed yet. Be the first to launch! 🚀
                 </div>
               ) : (
                 filteredTokens.map((token: any, i: number) => (
                   <div 
                     key={i} 
-                    className="bg-cardBg border border-cardBorder rounded-2xl p-4 flex items-center justify-between hover:border-primary/50 transition-all cursor-pointer"
+                    className="bg-cardBg border border-cardBorder rounded-2xl p-4 flex items-center justify-between hover:border-primary/50 transition-all cursor-pointer shadow-md"
                     onClick={() => {
                       setSelectedToken(token);
                       setActiveTab("swap");
@@ -330,13 +455,13 @@ export default function Home() {
                       <img 
                         src={token.imageUrl} 
                         alt={token.symbol} 
-                        className="w-11 h-11 rounded-xl object-cover bg-neutral-800"
+                        className="w-11 h-11 rounded-xl object-cover bg-neutral-800 border border-cardBorder"
                         onError={(e: any) => { e.target.src = "https://placeholder.co/150" }}
                       />
                       <div>
                         <div className="flex items-center gap-1.5">
                           <span className="font-extrabold text-white text-sm">{token.symbol}</span>
-                          <span className="text-[10px] bg-cardBorder text-gray-400 px-1.5 py-0.5 rounded-md font-semibold">TeqL2</span>
+                          <span className="text-[9px] bg-primary bg-opacity-10 text-primary border border-primary border-opacity-10 px-1.5 py-0.5 rounded font-bold">L2</span>
                         </div>
                         <div className="text-[11px] text-gray-400 line-clamp-1 max-w-[150px] mt-0.5">{token.name}</div>
                       </div>
@@ -358,15 +483,15 @@ export default function Home() {
           <div className="space-y-4">
             <h2 className="text-lg font-extrabold text-white flex items-center gap-2 mb-2">
               <PlusCircle className="text-primary" size={20} />
-              Luncurkan Token Baru
+              Launch New Coin
             </h2>
 
-            <div className="bg-cardBg border border-cardBorder rounded-3xl p-5 space-y-4">
+            <div className="bg-cardBg border border-cardBorder rounded-3xl p-5 space-y-4 shadow-xl">
               <div>
-                <label className="text-xs font-bold text-gray-400 uppercase">Nama Token</label>
+                <label className="text-xs font-bold text-gray-400 uppercase">Token Name</label>
                 <input 
                   type="text" 
-                  placeholder="Contoh: TeqDogecoin"
+                  placeholder="e.g. TeQoin Shiba"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full mt-1.5 bg-background border border-cardBorder rounded-2xl py-3 px-4 text-sm text-white focus:outline-none focus:border-primary"
@@ -374,10 +499,10 @@ export default function Home() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-400 uppercase">Simbol Token</label>
+                <label className="text-xs font-bold text-gray-400 uppercase">Token Symbol</label>
                 <input 
                   type="text" 
-                  placeholder="Contoh: TDOGE"
+                  placeholder="e.g. TSHIB"
                   value={symbol}
                   onChange={(e) => setSymbol(e.target.value.toUpperCase())}
                   className="w-full mt-1.5 bg-background border border-cardBorder rounded-2xl py-3 px-4 text-sm text-white focus:outline-none focus:border-primary"
@@ -385,10 +510,10 @@ export default function Home() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-400 uppercase">Jumlah Supply</label>
+                <label className="text-xs font-bold text-gray-400 uppercase">Total Supply</label>
                 <input 
                   type="number" 
-                  placeholder="Contoh: 1,000,000,000"
+                  placeholder="e.g. 1000000000"
                   value={supply}
                   onChange={(e) => setSupply(e.target.value)}
                   className="w-full mt-1.5 bg-background border border-cardBorder rounded-2xl py-3 px-4 text-sm text-white focus:outline-none focus:border-primary"
@@ -396,7 +521,7 @@ export default function Home() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-400 uppercase">URL Gambar / Logo</label>
+                <label className="text-xs font-bold text-gray-400 uppercase">Logo URL (Optional)</label>
                 <input 
                   type="text" 
                   placeholder="https://..."
@@ -407,9 +532,9 @@ export default function Home() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-400 uppercase">Deskripsi Token</label>
+                <label className="text-xs font-bold text-gray-400 uppercase">Description</label>
                 <textarea 
-                  placeholder="Tentang token ini..."
+                  placeholder="Tell us about this token..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
@@ -419,18 +544,23 @@ export default function Home() {
 
               <button 
                 onClick={handleLaunch}
-                disabled={isConfirming || !isConnected}
-                className="w-full bg-primary hover:bg-opacity-95 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 text-sm mt-2"
+                disabled={isLaunching || !authenticated}
+                className="w-full bg-primary hover:bg-opacity-95 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 text-sm mt-2 shadow-lg"
               >
-                {isConfirming ? (
+                {isLaunching ? (
                   <>
                     <RefreshCw className="animate-spin" size={16} />
-                    Sedang Meluncurkan...
+                    Launching...
+                  </>
+                ) : !authenticated ? (
+                  <>
+                    <Lock size={15} />
+                    Login Required to Launch
                   </>
                 ) : (
                   <>
                     <PlusCircle size={16} />
-                    Luncurkan Token (Gratis Gas L2)
+                    Launch Token (8 Wei Gas)
                   </>
                 )}
               </button>
@@ -443,12 +573,12 @@ export default function Home() {
           <div className="space-y-4">
             <h2 className="text-lg font-extrabold text-white flex items-center gap-2 mb-2">
               <ArrowDownUp className="text-primary" size={20} />
-              Swap / Dagang Token
+              Trade Tokens
             </h2>
 
             {selectedToken ? (
-              <div className="bg-cardBg border border-cardBorder rounded-3xl p-5 space-y-4">
-                {/* Active Token Info */}
+              <div className="bg-cardBg border border-cardBorder rounded-3xl p-5 space-y-4 shadow-xl">
+                {/* Token Header */}
                 <div className="flex items-center gap-3 bg-background p-3 rounded-2xl border border-cardBorder">
                   <img 
                     src={selectedToken.imageUrl} 
@@ -458,7 +588,7 @@ export default function Home() {
                   />
                   <div>
                     <div className="font-bold text-sm text-white">{selectedToken.name}</div>
-                    <div className="text-xs text-primary font-bold">{selectedToken.symbol} ({selectedToken.tokenAddress.slice(0,6)}...{selectedToken.tokenAddress.slice(-4)})</div>
+                    <div className="text-xs text-primary font-bold">{selectedToken.symbol}</div>
                   </div>
                 </div>
 
@@ -468,22 +598,22 @@ export default function Home() {
                     onClick={() => { setSwapType("buy"); setSwapAmount(""); }}
                     className={`flex-1 py-2.5 rounded-xl font-bold text-xs transition-all ${swapType === "buy" ? "bg-primary text-white" : "text-gray-400 hover:text-white"}`}
                   >
-                    Beli {selectedToken.symbol}
+                    Buy
                   </button>
                   <button 
                     onClick={() => { setSwapType("sell"); setSwapAmount(""); }}
                     className={`flex-1 py-2.5 rounded-xl font-bold text-xs transition-all ${swapType === "sell" ? "bg-red-500 text-white" : "text-gray-400 hover:text-white"}`}
                   >
-                    Jual {selectedToken.symbol}
+                    Sell
                   </button>
                 </div>
 
-                {/* Inputs */}
+                {/* Input Fields */}
                 <div className="space-y-3">
                   <div>
-                    <div className="flex justify-between text-xs font-bold text-gray-400 mb-1">
-                      <span>MASUKKAN</span>
-                      <span>Balance: -</span>
+                    <div className="flex justify-between text-[10px] font-bold text-gray-400 mb-1">
+                      <span>SEND</span>
+                      <span>Balance: {swapType === "buy" ? parseFloat(userEthBalance).toFixed(4) : parseFloat(userTokenBalance).toFixed(4)}</span>
                     </div>
                     <div className="relative">
                       <input 
@@ -500,21 +630,21 @@ export default function Home() {
                   </div>
 
                   <div className="flex justify-center">
-                    <div className="w-8 h-8 rounded-full bg-background border border-cardBorder flex items-center justify-center text-primary hover:text-white transition-all cursor-pointer">
+                    <div className="w-8 h-8 rounded-full bg-background border border-cardBorder flex items-center justify-center text-primary hover:text-white transition-all">
                       <ArrowDownUp size={14} />
                     </div>
                   </div>
 
                   <div>
-                    <div className="flex justify-between text-xs font-bold text-gray-400 mb-1">
-                      <span>ESTIMASI DAPAT</span>
+                    <div className="flex justify-between text-[10px] font-bold text-gray-400 mb-1">
+                      <span>RECEIVE (Live Quote)</span>
                     </div>
                     <div className="relative">
                       <input 
                         type="text" 
                         placeholder="0.00"
                         readOnly
-                        value={swapAmount ? (parseFloat(swapAmount) * 125000).toLocaleString() : "0.00"} // Mock price path calculation for Testnet
+                        value={swapOutput}
                         className="w-full bg-background border border-cardBorder rounded-2xl py-3 px-4 pr-16 text-sm text-white font-bold focus:outline-none"
                       />
                       <span className="absolute right-4 top-3 text-xs font-bold text-gray-400">
@@ -524,24 +654,34 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Swap Button */}
+                {/* Submit Action */}
                 <button 
                   onClick={handleSwap}
-                  className={`w-full py-3.5 rounded-2xl font-bold text-sm transition-all mt-2 ${swapType === "buy" ? "bg-primary hover:bg-opacity-95 text-white" : "bg-red-500 hover:bg-opacity-95 text-white"}`}
+                  disabled={isSwapping || !authenticated || !swapAmount}
+                  className={`w-full py-3.5 rounded-2xl font-bold text-sm transition-all mt-2 disabled:opacity-50 ${swapType === "buy" ? "bg-primary text-white" : "bg-red-500 text-white"}`}
                 >
-                  Confirm Swap 🚀
+                  {isSwapping ? (
+                    <span className="flex items-center justify-center gap-1.5">
+                      <RefreshCw className="animate-spin" size={14} />
+                      Processing Swap...
+                    </span>
+                  ) : !authenticated ? (
+                    "Login to Trade"
+                  ) : (
+                    "Confirm Swap 🚀"
+                  )}
                 </button>
               </div>
             ) : (
               <div className="bg-cardBg border border-cardBorder rounded-3xl p-8 text-center text-gray-500 text-sm">
-                Pilih koin di halaman utama / Home dulu untuk melakukan swap trading! 📈
+                Select a coin from the Home list first to trade! 📈
               </div>
             )}
           </div>
         )}
       </main>
 
-      {/* BOTTOM NAVIGATION BAR (Mobile Style) */}
+      {/* BOTTOM NAVIGATION BAR */}
       <nav className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-cardBg border-t border-cardBorder py-3 px-6 flex justify-around items-center z-50 shadow-lg">
         <button 
           onClick={() => setActiveTab("home")}
