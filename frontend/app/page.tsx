@@ -18,7 +18,8 @@ import {
   Sparkles,
   BarChart2,
   TrendingUp,
-  TrendingDown
+  TrendingDown,
+  Coins
 } from "lucide-react";
 
 // Deployed Smart Contract Addresses on TeQoin Testnet
